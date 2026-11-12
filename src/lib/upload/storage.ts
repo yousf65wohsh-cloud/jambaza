@@ -77,7 +77,7 @@ export async function uploadFileToStorage({
     request.setRequestHeader("authorization", `Bearer ${session.access_token}`);
     request.setRequestHeader("apikey", anonKey);
     request.setRequestHeader("content-type", file.type);
-    request.setRequestHeader("cache-control", "3600");
+    request.setRequestHeader("cache-control", "max-age=3600");
     request.setRequestHeader("x-upsert", "false");
 
     request.upload.onprogress = (event) => {

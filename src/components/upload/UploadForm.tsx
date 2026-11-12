@@ -155,6 +155,7 @@ export function UploadForm() {
 
     if (!result.ok) {
       setFormError(result.error.message);
+      setProgress(null);
       setPhase("idle");
       return;
     }
@@ -262,12 +263,18 @@ export function UploadForm() {
         ) : null}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Link
-            href="/library"
-            className="text-muted hover:text-foreground inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-medium transition-colors"
-          >
-            إلغاء
-          </Link>
+          {busy ? (
+            <span className="text-muted inline-flex h-11 cursor-not-allowed items-center justify-center rounded-xl px-4 text-sm font-medium opacity-50">
+              إلغاء
+            </span>
+          ) : (
+            <Link
+              href="/library"
+              className="text-muted hover:text-foreground inline-flex h-11 items-center justify-center rounded-xl px-4 text-sm font-medium transition-colors"
+            >
+              إلغاء
+            </Link>
+          )}
           <Button type="submit" loading={busy} disabled={busy} className="gap-2 sm:min-w-40">
             {busy ? "جارٍ رفع الأغنية..." : "رفع الأغنية"}
             {!busy ? <UploadIcon className="size-4" /> : null}
