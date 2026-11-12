@@ -12,7 +12,7 @@ export function SideNav() {
   const pathname = usePathname();
 
   return (
-    <aside className="border-border/70 bg-surface/40 fixed top-16 start-0 bottom-0 z-40 hidden w-60 border-e p-4 md:block">
+    <aside className="border-border/70 bg-surface/40 fixed top-16 start-0 bottom-20 z-40 hidden w-60 border-e p-4 md:block">
       <p className="text-muted mb-3 px-3 text-xs font-bold tracking-wide">تنقّل</p>
       <ul className="space-y-1">
         {NAV_ITEMS.map((item) => {
