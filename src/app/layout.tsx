@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import type { ReactNode } from "react";
 
+import { AppShell } from "@/components/layout/AppShell";
+
 import "./globals.css";
 
 const tajawal = Tajawal({
@@ -31,7 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ar" dir="rtl" className={tajawal.variable}>
       <body className="bg-background text-foreground min-h-dvh font-sans antialiased">
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
