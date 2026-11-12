@@ -1,35 +1,30 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
+import { LibraryClient } from "@/components/library/LibraryClient";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { LibraryIcon } from "@/components/ui/icons";
 
 export const metadata: Metadata = {
   title: "مكتبتي",
 };
 
-export default function LibraryPage() {
+export default async function LibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ uploaded?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const uploaded = Array.isArray(params.uploaded)
+    ? params.uploaded.includes("1")
+    : params.uploaded === "1";
+
   return (
     <main className="space-y-6">
       <PageHeader
         title="مكتبتي"
-        description="أغانيك المرفوعة وقوائم التشغيل الخاصة بك."
+        description="أغانيك المرفوعة. اضغط على أي أغنية لتشغيلها أو احذفها من مكتبتك."
       />
 
-      <EmptyState
-        icon={<LibraryIcon className="size-6" />}
-        title="مكتبتك فارغة"
-        description="لم تُضف أغاني بعد. الرفع وقوائم التشغيل سيصلان في المرحلة التالية."
-        action={
-          <Link href="/">
-            <Button variant="secondary" size="sm">
-              العودة إلى الرئيسية
-            </Button>
-          </Link>
-        }
-      />
+      <LibraryClient showSuccess={uploaded} />
     </main>
   );
 }
