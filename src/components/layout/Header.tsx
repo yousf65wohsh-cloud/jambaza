@@ -9,6 +9,7 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
 
 import { Button } from "../ui/Button";
+import { OnlineIndicator } from "./OnlineIndicator";
 
 export function Header() {
   const [user, setUser] = useState<User | null | undefined>(() =>
@@ -55,6 +56,7 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-2">
+          <OnlineIndicator />
           {user === undefined ? (
             <span className="bg-surface-2 h-8 w-16 animate-pulse rounded-lg" aria-hidden="true" />
           ) : user ? (

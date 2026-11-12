@@ -1,0 +1,32 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "جمبزة — استمع مع أصدقائك",
+    short_name: "جمبزة",
+    description:
+      "تطبيق استماع للموسيقى بواجهة عربية: ارفع أغانيك، نظّم قوائمك، واستمع مع أصدقائك.",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#0b0b0f",
+    theme_color: "#0b0b0f",
+    lang: "ar",
+    dir: "rtl",
+    icons: [
+      {
+        src: "/icons/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
+      {
+        src: "/icons/icon-maskable.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "maskable",
+      },
+    ],
+  };
+}

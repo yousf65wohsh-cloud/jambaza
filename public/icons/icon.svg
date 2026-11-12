@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="جمبزة">
+  <rect width="512" height="512" rx="112" fill="#0B0B0F" />
+  <rect x="56" y="56" width="400" height="400" rx="88" fill="#14141B" stroke="#2A2A36" stroke-width="8" />
+  <g fill="none" stroke="#FF7A45" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M196 322V188l148-28v134" />
+    <path d="M196 188v-24" opacity="0.55" />
+  </g>
+  <circle cx="166" cy="338" r="50" fill="#FF7A45" />
+  <circle cx="314" cy="310" r="50" fill="#FF7A45" />
+</svg>
