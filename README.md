@@ -108,7 +108,38 @@ supabase/
   migrations/     SQL migrations (schema, RLS, triggers, storage)
 ```
 
+## Implemented in this foundation
+
+- Arabic-first RTL shell with dark theme, accent `#FF7A45`, responsive bottom nav (mobile) and side nav (desktop).
+- Routes: `/`, `/search`, `/library`, `/friends`, `/login`, `/signup`, `/rooms/[id]`, plus the `/offline` fallback.
+- Email/password sign-up and sign-in with Supabase Auth, Arabic validation and error messages, and protected-route middleware.
+- Persistent player bar with Zustand state (`currentTrack`, `queue`, `isPlaying`, `position`, `volume`), queue controls, seek and volume.
+- Uploaded audio playback through a hidden `<audio>` element: IndexedDB blob first, then a short-lived signed URL from the private `audio` bucket.
+- YouTube playback through the **official YouTube IFrame Player API** in a visible, fixed panel that stays on screen during playback.
+- Listening-room UI with host/member roles, Realtime subscription to `listening_rooms`, host-only writes, and seek correction only beyond a 2-second drift.
+- PWA manifest, Serwist service worker, app-shell precache, `/offline` fallback, and an online/offline indicator.
+- Full database migration with RLS on every table, signup profile trigger, `covers` (public) and `audio` (private) storage buckets, and Realtime enabled for `listening_rooms`.
+- Typed errors and API response helpers, plus Vitest coverage for drift logic and offline cache helpers.
+
+## Next phase
+
+- Upload UI (file picker, metadata, cover/audio upload) and track/playlist management.
+- Full-text search for tracks, artists, and people.
+- Friend requests, friend lists, and browsing friends' public playlists.
+- Create/join/leave room UI and member management. Until then, room membership is seeded directly in the database.
+- Server-side mutations for library, playlists, friendships, and rooms.
+- Caching uploaded audio for offline use from the library, plus cache management UI.
+
 ## Notes
 
 - YouTube tracks are played **only** through the official YouTube IFrame Player API, with the player visibly rendered. There is no downloader or audio extraction of any kind.
 - Offline caching applies **only** to files the user uploaded themselves.
+
+## Tests
+
+```bash
+npm run test        # single run
+npm run test:watch  # watch mode
+```
+
+The suite covers the 2-second drift rule and the Dexie offline helpers (`fake-indexeddb` provides IndexedDB in Node).
