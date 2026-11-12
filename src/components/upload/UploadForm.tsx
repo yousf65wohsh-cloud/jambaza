@@ -4,8 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
+// TEMP-DEBUG: temporary upload diagnostics. Remove with the debug feature.
+import { isUploadDebugEnabled } from "@/lib/debug/uploadDebug";
 import { uploadTrack, type UploadProgress } from "@/lib/tracks/upload";
 import { validateAudioFile, validateCoverFile } from "@/lib/upload/validation";
+import type { UploadDebugInfo } from "@/types/api";
 
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -60,6 +63,8 @@ export function UploadForm() {
   const [audioError, setAudioError] = useState<string | null>(null);
   const [coverError, setCoverError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  // TEMP-DEBUG: developer-only details for the last failed upload.
+  const [formDebug, setFormDebug] = useState<UploadDebugInfo | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const previewUrlRef = useRef<string | null>(null);
@@ -106,6 +111,8 @@ export function UploadForm() {
     if (busy) return;
 
     setFormError(null);
+    // TEMP-DEBUG: clear the previous failure details.
+    setFormDebug(null);
     setTitleError(null);
     setAudioError(null);
     setCoverError(null);
@@ -155,6 +162,8 @@ export function UploadForm() {
 
     if (!result.ok) {
       setFormError(result.error.message);
+      // TEMP-DEBUG: the envelope only carries debug info when the flag is on.
+      setFormDebug(result.error.debug ?? null);
       setProgress(null);
       setPhase("idle");
       return;
@@ -174,6 +183,20 @@ export function UploadForm() {
           >
             {formError}
           </p>
+        ) : null}
+
+        {/* TEMP-DEBUG: developer-only failure details, below the Arabic message. */}
+        {isUploadDebugEnabled() && formDebug ? (
+          <div
+            dir="ltr"
+            className="border-border bg-surface-2/60 space-y-1 rounded-xl border p-3 text-left font-mono text-xs break-words"
+          >
+            <p className="text-muted">[upload-debug]</p>
+            <p>step: {formDebug.step}</p>
+            {formDebug.message ? <p>message: {formDebug.message}</p> : null}
+            {formDebug.code !== undefined ? <p>code: {formDebug.code}</p> : null}
+            {formDebug.status !== undefined ? <p>status: {formDebug.status}</p> : null}
+          </div>
         ) : null}
 
         <Input
