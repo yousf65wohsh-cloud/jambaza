@@ -11,22 +11,39 @@ function normalizeExtension(extension: string): string {
   return normalized;
 }
 
-/** audio/{owner_id}/{track_id}.{ext} */
+/**
+ * Object path inside the "audio" bucket:
+ * {owner_id}/{track_id}.{ext}
+ *
+ * Supabase prepends the bucket name, so the full storage path is
+ * audio/{owner_id}/{track_id}.{ext}.
+ */
 export function buildAudioPath(
   ownerId: string,
   trackId: string,
   extension: AudioExtension | string,
 ): string {
-  return `audio/${ownerId}/${trackId}.${normalizeExtension(extension)}`;
+  return `${ownerId}/${trackId}.${normalizeExtension(extension)}`;
 }
 
-/** covers/{owner_id}/{track_id}.{ext} */
+/**
+ * Object path inside the "covers" bucket:
+ * {owner_id}/{track_id}.{ext}
+ *
+ * Supabase prepends the bucket name, so the full storage path is
+ * covers/{owner_id}/{track_id}.{ext}.
+ */
 export function buildCoverPath(
   ownerId: string,
   trackId: string,
   extension: CoverExtension | string,
 ): string {
-  return `covers/${ownerId}/${trackId}.${normalizeExtension(extension)}`;
+  return `${ownerId}/${trackId}.${normalizeExtension(extension)}`;
+}
+
+/** Full display path, including the bucket name. */
+export function buildFullStoragePath(bucket: "audio" | "covers", objectPath: string): string {
+  return `${bucket}/${objectPath}`;
 }
 
 /**

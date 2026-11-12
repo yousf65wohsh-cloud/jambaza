@@ -1,20 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { buildAudioPath, buildCoverPath, parsePublicStoragePath } from "./paths";
+import {
+  buildAudioPath,
+  buildCoverPath,
+  buildFullStoragePath,
+  parsePublicStoragePath,
+} from "./paths";
 
 const OWNER_ID = "8f14e45f-ea0a-4c3b-9f1e-93a3f6a2d9b1";
 const TRACK_ID = "f1d2d2f4-6e5c-4b2a-8a0e-8a3f5e9c1b7d";
 
 describe("buildAudioPath", () => {
-  it("builds audio/{owner_id}/{track_id}.{ext}", () => {
+  it("builds the object path {owner_id}/{track_id}.{ext} inside the audio bucket", () => {
     expect(buildAudioPath(OWNER_ID, TRACK_ID, "mp3")).toBe(
-      `audio/${OWNER_ID}/${TRACK_ID}.mp3`,
+      `${OWNER_ID}/${TRACK_ID}.mp3`,
     );
   });
 
   it("normalizes a leading dot and casing", () => {
     expect(buildAudioPath(OWNER_ID, TRACK_ID, ".M4A")).toBe(
-      `audio/${OWNER_ID}/${TRACK_ID}.m4a`,
+      `${OWNER_ID}/${TRACK_ID}.m4a`,
     );
   });
 
@@ -24,8 +29,19 @@ describe("buildAudioPath", () => {
 });
 
 describe("buildCoverPath", () => {
-  it("builds covers/{owner_id}/{track_id}.{ext}", () => {
+  it("builds the object path {owner_id}/{track_id}.{ext} inside the covers bucket", () => {
     expect(buildCoverPath(OWNER_ID, TRACK_ID, "webp")).toBe(
+      `${OWNER_ID}/${TRACK_ID}.webp`,
+    );
+  });
+});
+
+describe("buildFullStoragePath", () => {
+  it("prepends the bucket name for display", () => {
+    expect(buildFullStoragePath("audio", `${OWNER_ID}/${TRACK_ID}.mp3`)).toBe(
+      `audio/${OWNER_ID}/${TRACK_ID}.mp3`,
+    );
+    expect(buildFullStoragePath("covers", `${OWNER_ID}/${TRACK_ID}.webp`)).toBe(
       `covers/${OWNER_ID}/${TRACK_ID}.webp`,
     );
   });
