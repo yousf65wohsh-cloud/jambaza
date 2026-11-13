@@ -187,16 +187,12 @@ export function UploadForm() {
 
         {/* TEMP-DEBUG: developer-only failure details, below the Arabic message. */}
         {isUploadDebugEnabled() && formDebug ? (
-          <div
+          <pre
             dir="ltr"
-            className="border-border bg-surface-2/60 space-y-1 rounded-xl border p-3 text-left font-mono text-xs break-words"
+            className="border-border bg-surface-2/60 overflow-x-auto rounded-xl border p-3 text-left font-mono text-xs break-words whitespace-pre-wrap"
           >
-            <p className="text-muted">[upload-debug]</p>
-            <p>step: {formDebug.step}</p>
-            {formDebug.message ? <p>message: {formDebug.message}</p> : null}
-            {formDebug.code !== undefined ? <p>code: {formDebug.code}</p> : null}
-            {formDebug.status !== undefined ? <p>status: {formDebug.status}</p> : null}
-          </div>
+            {JSON.stringify(formDebug, null, 2)}
+          </pre>
         ) : null}
 
         <Input
