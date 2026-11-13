@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canInvite, isHost } from "./membership";
+import { canHostLeave, canInvite, isHost } from "./membership";
 
 const HOST_ID = "8f14e45f-ea0a-4c3b-9f1e-93a3f6a2d9b1";
 const MEMBER_ID = "f1d2d2f4-6e5c-4b2a-8a0e-8a3f5e9c1b7d";
@@ -34,5 +34,19 @@ describe("canInvite", () => {
   it("is false without a loaded room or a signed-in user", () => {
     expect(canInvite(null, HOST_ID)).toBe(false);
     expect(canInvite(room, null)).toBe(false);
+  });
+});
+
+describe("canHostLeave", () => {
+  it("allows an empty room (0 members)", () => {
+    expect(canHostLeave(0)).toBe(true);
+  });
+
+  it("allows the host to leave when alone (1 member)", () => {
+    expect(canHostLeave(1)).toBe(true);
+  });
+
+  it("blocks the host while other members remain (2 members)", () => {
+    expect(canHostLeave(2)).toBe(false);
   });
 });

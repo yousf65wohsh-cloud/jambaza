@@ -28,3 +28,11 @@ export function canInvite(
 ): boolean {
   return isHost(room, currentUserId);
 }
+
+/**
+ * A host may leave only when no other members remain, so a room can never be
+ * left without anyone who can manage it. `memberCount` includes the host.
+ */
+export function canHostLeave(memberCount: number): boolean {
+  return memberCount <= 1;
+}

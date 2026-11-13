@@ -8,6 +8,7 @@ import type { FriendProfile, GroupedFriendships } from "@/lib/friends/mapping";
 import {
   getMyProfile,
   getRoom,
+  HOST_LEAVE_BLOCKED_MESSAGE,
   inviteFriend,
   leaveRoom,
   listRoomMembers,
@@ -15,7 +16,7 @@ import {
   type RoomMember,
   type RoomSummary,
 } from "@/lib/rooms/data";
-import { canInvite, isHost } from "@/lib/rooms/membership";
+import { canHostLeave, canInvite, isHost } from "@/lib/rooms/membership";
 
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -213,6 +214,7 @@ export function RoomMembersPanel({ roomId }: { roomId: string }) {
 
   const currentHost = room ? isHost(room, room.viewerId) : false;
   const currentUserCanInvite = room ? canInvite(room, room.viewerId) : false;
+  const hostCanLeaveNow = canHostLeave(members.length);
 
   return (
     <section aria-labelledby="room-members-title" className="mt-6 space-y-4">
@@ -382,17 +384,21 @@ export function RoomMembersPanel({ roomId }: { roomId: string }) {
             <div className="border-border/70 flex flex-wrap items-center justify-between gap-2 border-t pt-4">
               <p className="text-muted text-xs leading-5">
                 {currentHost
-                  ? "أنت المضيف. مغادرة الغرفة تحذف عضويتك فقط، وتبقى الغرفة محفوظة."
+                  ? hostCanLeaveNow
+                    ? "أنت المضيف. مغادرة الغرفة تحذف عضويتك فقط، وتبقى الغرفة محفوظة."
+                    : HOST_LEAVE_BLOCKED_MESSAGE
                   : "يمكنك مغادرة الغرفة في أي وقت."}
               </p>
-              <Button
-                variant="danger"
-                onClick={() => void handleLeave()}
-                loading={actionKey === "leave"}
-                disabled={Boolean(actionKey) && actionKey !== "leave"}
-              >
-                مغادرة الغرفة
-              </Button>
+              {currentHost && !hostCanLeaveNow ? null : (
+                <Button
+                  variant="danger"
+                  onClick={() => void handleLeave()}
+                  loading={actionKey === "leave"}
+                  disabled={Boolean(actionKey) && actionKey !== "leave"}
+                >
+                  مغادرة الغرفة
+                </Button>
+              )}
             </div>
           </div>
         ) : null}

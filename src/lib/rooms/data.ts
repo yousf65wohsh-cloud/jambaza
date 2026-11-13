@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { ApiResponse } from "@/types/api";
 import type { Database, ListeningRoomRow } from "@/types/database";
 
+import { canHostLeave } from "./membership";
+
 const SIGN_IN_MESSAGE =
   "يجب تسجيل الدخول لإدارة غرف الاستماع. سجّل الدخول ثم أعد المحاولة.";
 const CREATE_FAILED_MESSAGE = "تعذّر إنشاء الغرفة. حاول مرة أخرى.";
@@ -21,6 +23,8 @@ const PROFILE_FAILED_MESSAGE = "تعذّر تحميل ملفك الشخصي. ح�
 const INVITE_FAILED_MESSAGE = "تعذّر دعوة الصديق إلى الغرفة. حاول مرة أخرى.";
 const REMOVE_FAILED_MESSAGE = "تعذّر إزالة العضو من الغرفة. حاول مرة أخرى.";
 const LEAVE_FAILED_MESSAGE = "تعذّرت مغادرة الغرفة. حاول مرة أخرى.";
+export const HOST_LEAVE_BLOCKED_MESSAGE =
+  "لا يمكن للمضيف المغادرة قبل إزالة الأعضاء الآخرين أو حذف الغرفة.";
 
 /** Postgres unique-violation code raised by the room_members primary key. */
 const UNIQUE_VIOLATION = "23505";
@@ -350,10 +354,38 @@ export async function removeMember(
 /**
  * Removes the signed-in user's own membership. A host who leaves keeps
  * `host_id`, so the room row itself is intentionally kept.
+ *
+ * A host may only leave when no other members remain; otherwise the room would
+ * have no one able to manage it.
  */
 export async function leaveRoom(roomId: string): Promise<ApiResponse<null>> {
   try {
     const { supabase, userId } = await getSupabaseAndUser();
+
+    const { data: room, error: roomError } = await supabase
+      .from("listening_rooms")
+      .select("host_id")
+      .eq("id", roomId)
+      .maybeSingle();
+
+    if (roomError) {
+      throw new AppError("INTERNAL", ROOM_LOAD_FAILED_MESSAGE, {
+        cause: roomError,
+      });
+    }
+
+    if (room?.host_id === userId) {
+      const members = await listRoomMembers(roomId);
+
+      if (!members.ok) {
+        throw new AppError("INTERNAL", MEMBERS_FAILED_MESSAGE);
+      }
+
+      if (!canHostLeave(members.data.length)) {
+        throw new AppError("FORBIDDEN", HOST_LEAVE_BLOCKED_MESSAGE);
+      }
+    }
+
     const { data, error } = await supabase
       .from("room_members")
       .delete()
