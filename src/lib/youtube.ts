@@ -99,3 +99,73 @@ export function loadYouTubeIframeApi(): Promise<YouTubeApi> {
 
   return apiPromise;
 }
+
+/** Exactly the 11-character id format used by YouTube videos. */
+export const YOUTUBE_VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
+
+const YOUTUBE_HOSTS = new Set(["youtube.com", "www.youtube.com", "m.youtube.com"]);
+const YOUTUBE_SHORT_HOSTS = new Set(["youtu.be", "www.youtu.be"]);
+
+export function isValidYouTubeVideoId(value: string): boolean {
+  return YOUTUBE_VIDEO_ID_PATTERN.test(value);
+}
+
+function parsePathId(segment: string | undefined): string | null {
+  return segment && isValidYouTubeVideoId(segment) ? segment : null;
+}
+
+/**
+ * Extracts only the 11-character video id from a pasted YouTube link.
+ *
+ * Accepted: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID,
+ * youtube.com/shorts/ID, and a bare ID. Everything else returns null. Full
+ * URLs are never stored; callers persist only the returned id.
+ */
+export function parseYouTubeVideoId(input: string): string | null {
+  const trimmed = input.trim();
+
+  if (trimmed === "") {
+    return null;
+  }
+
+  if (isValidYouTubeVideoId(trimmed)) {
+    return trimmed;
+  }
+
+  let url: URL;
+
+  try {
+    const hasHttpScheme = /^https?:\/\//i.test(trimmed);
+    url = new URL(hasHttpScheme ? trimmed : `https://${trimmed}`);
+  } catch {
+    return null;
+  }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    return null;
+  }
+
+  const host = url.hostname.toLowerCase();
+  const segments = url.pathname.split("/").filter(Boolean);
+
+  if (YOUTUBE_SHORT_HOSTS.has(host)) {
+    return segments.length === 1 ? parsePathId(segments[0]) : null;
+  }
+
+  if (!YOUTUBE_HOSTS.has(host)) {
+    return null;
+  }
+
+  if (segments.length === 1 && segments[0] === "watch") {
+    return parsePathId(url.searchParams.get("v") ?? undefined);
+  }
+
+  if (
+    segments.length === 2 &&
+    (segments[0] === "embed" || segments[0] === "shorts")
+  ) {
+    return parsePathId(segments[1]);
+  }
+
+  return null;
+}
