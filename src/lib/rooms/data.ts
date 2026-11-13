@@ -7,6 +7,7 @@ import { AppError } from "@/lib/errors";
 import { listMyFriendships } from "@/lib/friends/data";
 import type { FriendProfile } from "@/lib/friends/mapping";
 import { createClient } from "@/lib/supabase/client";
+import { isValidYouTubeVideoId } from "@/lib/youtube";
 import type { ApiResponse } from "@/types/api";
 import type { Database, ListeningRoomRow } from "@/types/database";
 
@@ -23,6 +24,10 @@ const PROFILE_FAILED_MESSAGE = "تعذّر تحميل ملفك الشخصي. ح�
 const INVITE_FAILED_MESSAGE = "تعذّر دعوة الصديق إلى الغرفة. حاول مرة أخرى.";
 const REMOVE_FAILED_MESSAGE = "تعذّر إزالة العضو من الغرفة. حاول مرة أخرى.";
 const LEAVE_FAILED_MESSAGE = "تعذّرت مغادرة الغرفة. حاول مرة أخرى.";
+const SAVE_VIDEO_FAILED_MESSAGE = "تعذّر حفظ فيديو الغرفة. حاول مرة أخرى.";
+const INVALID_VIDEO_ID_MESSAGE = "معرّف فيديو يوتيوب غير صالح.";
+const ROOM_UPDATE_NOT_ALLOWED_MESSAGE =
+  "لم يتم العثور على الغرفة أو لا تملك صلاحية تعديلها.";
 export const HOST_LEAVE_BLOCKED_MESSAGE =
   "لا يمكن للمضيف المغادرة قبل إزالة الأعضاء الآخرين أو حذف الغرفة.";
 
@@ -227,6 +232,44 @@ export async function listRoomMembers(
     );
   } catch (error) {
     return apiFail<RoomMember[]>(error, MEMBERS_FAILED_MESSAGE);
+  }
+}
+
+/**
+ * Saves only the 11-character video id. RLS restricts the update to the host.
+ * A null parser result must be turned into an Arabic link error by the caller;
+ * this function only guards against invalid ids that reach it directly.
+ */
+export async function setRoomVideo(
+  roomId: string,
+  videoId: string,
+): Promise<ApiResponse<null>> {
+  try {
+    if (!isValidYouTubeVideoId(videoId)) {
+      throw new AppError("BAD_REQUEST", INVALID_VIDEO_ID_MESSAGE);
+    }
+
+    const { supabase } = await getSupabaseAndUser();
+    const { data, error } = await supabase
+      .from("listening_rooms")
+      .update({ video_id: videoId })
+      .eq("id", roomId)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError("INTERNAL", SAVE_VIDEO_FAILED_MESSAGE, {
+        cause: error,
+      });
+    }
+
+    if (!data) {
+      throw new AppError("NOT_FOUND", ROOM_UPDATE_NOT_ALLOWED_MESSAGE);
+    }
+
+    return apiOk(null);
+  } catch (error) {
+    return apiFail<null>(error, SAVE_VIDEO_FAILED_MESSAGE);
   }
 }
 
