@@ -2,6 +2,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 
 export type TrackSource = "upload" | "youtube";
 export type FriendshipStatus = "pending" | "accepted";
+export type FriendshipDirection = "incoming" | "outgoing" | "accepted";
 
 export interface Database {
   public: {
@@ -170,7 +171,32 @@ export interface Database {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      list_my_friendships: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          friendship_id: string;
+          status: FriendshipStatus;
+          direction: FriendshipDirection;
+          friend_id: string;
+          friend_username: string;
+          friend_display_name: string | null;
+          friend_avatar_url: string | null;
+          created_at: string;
+        }[];
+      };
+      search_profiles: {
+        Args: {
+          p_query: string;
+        };
+        Returns: {
+          id: string;
+          username: string;
+          display_name: string | null;
+          avatar_url: string | null;
+        }[];
+      };
+    };
     Enums: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
   };
