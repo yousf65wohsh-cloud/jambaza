@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 
+import { FriendsClient } from "@/components/friends/FriendsClient";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { UsersIcon } from "@/components/ui/icons";
 
 export const metadata: Metadata = {
   title: "الأصدقاء",
@@ -11,13 +10,9 @@ export const metadata: Metadata = {
 export default function FriendsPage() {
   return (
     <main className="space-y-6">
-      <PageHeader title="الأصدقاء" description="تابع أصدقاءك، استكشف قوائمهم، واستمعوا معاً." />
+      <PageHeader title="الأصدقاء" description="ابحث عن مستمعين، أرسل طلبات الصداقة، وأدر أصدقاءك." />
 
-      <EmptyState
-        icon={<UsersIcon className="size-6" />}
-        title="لا يوجد أصدقاء بعد"
-        description="إضافة الأصدقاء وطلبات الصداقة ستصل في المرحلة التالية."
-      />
+      <FriendsClient />
     </main>
   );
 }
