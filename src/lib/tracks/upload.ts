@@ -1,13 +1,6 @@
 "use client";
 
 import { apiFail } from "@/lib/api/result";
-// TEMP-DEBUG: temporary upload diagnostics. Remove with the debug feature.
-import {
-  logUploadError,
-  runUploadStep,
-  unwrapUploadStepError,
-  withUploadDebug,
-} from "@/lib/debug/uploadDebug";
 import { AppError } from "@/lib/errors";
 import { createClient } from "@/lib/supabase/client";
 import { readAudioDuration } from "@/lib/upload/duration";
@@ -66,94 +59,71 @@ export async function uploadTrack(input: UploadTrackInput): Promise<ApiResponse<
     await removeStorageFilesBestEffort(files);
   };
 
-  // TEMP-DEBUG: rollback is tracked as its own step so failures are visible.
-  const rollbackUploads = async () => {
-    try {
-      await runUploadStep("rollback", () => cleanup());
-    } catch (thrown) {
-      const { step, error } = unwrapUploadStepError(thrown);
-      logUploadError(step, error);
-    }
-  };
-
   try {
-    // TEMP-DEBUG: each step runs through runUploadStep, which tags failures.
-    const prepared = await runUploadStep("validate", async () => {
-      const title = input.title.trim();
-      if (!title) {
-        throw new AppError("BAD_REQUEST", "عنوان الأغنية مطلوب.");
-      }
-      if (title.length > 120) {
-        throw new AppError("BAD_REQUEST", "عنوان الأغنية يجب ألا يتجاوز 120 حرفاً.");
-      }
+    const title = input.title.trim();
+    if (!title) {
+      throw new AppError("BAD_REQUEST", "عنوان الأغنية مطلوب.");
+    }
+    if (title.length > 120) {
+      throw new AppError("BAD_REQUEST", "عنوان الأغنية يجب ألا يتجاوز 120 حرفاً.");
+    }
 
-      const audioValidation = validateAudioFile(input.audioFile);
-      if (!audioValidation.ok) {
-        throw new AppError("BAD_REQUEST", audioValidation.message);
-      }
+    const audioValidation = validateAudioFile(input.audioFile);
+    if (!audioValidation.ok) {
+      throw new AppError("BAD_REQUEST", audioValidation.message);
+    }
 
-      const coverValidation = input.coverFile ? validateCoverFile(input.coverFile) : null;
-      if (coverValidation && !coverValidation.ok) {
-        throw new AppError("BAD_REQUEST", coverValidation.message);
-      }
+    const coverValidation = input.coverFile ? validateCoverFile(input.coverFile) : null;
+    if (coverValidation && !coverValidation.ok) {
+      throw new AppError("BAD_REQUEST", coverValidation.message);
+    }
 
-      const supabase = createClient();
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+    const supabase = createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-      if (userError || !user) {
-        throw new AppError("UNAUTHORIZED", "يجب تسجيل الدخول لرفع الأغاني.", {
-          cause: userError,
-        });
-      }
+    if (userError || !user) {
+      throw new AppError("UNAUTHORIZED", "يجب تسجيل الدخول لرفع الأغاني.", {
+        cause: userError,
+      });
+    }
 
-      const trackId = crypto.randomUUID();
-      const audioPath = buildAudioPath(user.id, trackId, audioValidation.extension);
-      const coverPath =
-        input.coverFile && coverValidation?.ok
-          ? buildCoverPath(user.id, trackId, coverValidation.extension)
-          : null;
+    const trackId = crypto.randomUUID();
+    const audioPath = buildAudioPath(user.id, trackId, audioValidation.extension);
+    const coverPath =
+      input.coverFile && coverValidation?.ok
+        ? buildCoverPath(user.id, trackId, coverValidation.extension)
+        : null;
 
-      return { title, trackId, audioPath, coverPath };
-    });
-
-    const { title, trackId, audioPath, coverPath } = prepared;
-
-    const duration = await runUploadStep("read-duration", () =>
-      readAudioDuration(input.audioFile),
-    );
+    const duration = await readAudioDuration(input.audioFile);
 
     report();
 
-    await runUploadStep("upload-audio", () =>
-      uploadFileToStorage({
-        bucket: "audio",
-        path: audioPath,
-        file: input.audioFile,
-        onProgress: (percent) => {
-          audioProgress = percent;
-          report();
-        },
-      }),
-    );
+    await uploadFileToStorage({
+      bucket: "audio",
+      path: audioPath,
+      file: input.audioFile,
+      onProgress: (percent) => {
+        audioProgress = percent;
+        report();
+      },
+    });
     uploadedAudioPath = audioPath;
     audioProgress = 100;
     report();
 
     if (input.coverFile && coverPath) {
-      await runUploadStep("upload-cover", () =>
-        uploadFileToStorage({
-          bucket: "covers",
-          path: coverPath,
-          file: input.coverFile as File,
-          onProgress: (percent) => {
-            coverProgress = percent;
-            report();
-          },
-        }),
-      );
+      await uploadFileToStorage({
+        bucket: "covers",
+        path: coverPath,
+        file: input.coverFile as File,
+        onProgress: (percent) => {
+          coverProgress = percent;
+          report();
+        },
+      });
       uploadedCoverPath = coverPath;
       coverProgress = 100;
       report();
@@ -161,33 +131,26 @@ export async function uploadTrack(input: UploadTrackInput): Promise<ApiResponse<
 
     const coverUrl = uploadedCoverPath ? getPublicCoverUrl(uploadedCoverPath) : null;
 
-    const result = await runUploadStep("insert-track", () =>
-      createTrack({
-        id: trackId,
-        title,
-        artist: input.artist,
-        coverUrl,
-        audioPath,
-        durationSeconds:
-          duration === null || !Number.isFinite(duration)
-            ? null
-            : Math.max(0, Math.round(duration)),
-      }),
-    );
+    const result = await createTrack({
+      id: trackId,
+      title,
+      artist: input.artist,
+      coverUrl,
+      audioPath,
+      durationSeconds:
+        duration === null || !Number.isFinite(duration)
+          ? null
+          : Math.max(0, Math.round(duration)),
+    });
 
     if (!result.ok) {
-      // TEMP-DEBUG: log and return the failing step without changing the message.
-      logUploadError("insert-track", result.error);
-      await rollbackUploads();
-      return withUploadDebug(result, "insert-track", result.error);
+      await cleanup();
+      return result;
     }
 
     return result;
-  } catch (thrown) {
-    // TEMP-DEBUG: log the real error with its step, then keep the Arabic message.
-    const { step, error } = unwrapUploadStepError(thrown);
-    logUploadError(step, error);
-    await rollbackUploads();
-    return withUploadDebug(apiFail<Track>(error, UPLOAD_FAILED_MESSAGE), step, error);
+  } catch (error) {
+    await cleanup();
+    return apiFail<Track>(error, UPLOAD_FAILED_MESSAGE);
   }
 }

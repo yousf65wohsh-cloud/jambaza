@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PageHeader } from "@/components/layout/PageHeader";
-import { UploadDebugProbe } from "@/components/upload/UploadDebugProbe";
 import { UploadForm } from "@/components/upload/UploadForm";
 
 export const metadata: Metadata = {
@@ -24,9 +23,6 @@ export default function UploadPage() {
       </div>
 
       <UploadForm />
-
-      {/* TEMP-DEBUG: connectivity probe; it renders nothing unless the flag is on. */}
-      <UploadDebugProbe />
     </main>
   );
 }
