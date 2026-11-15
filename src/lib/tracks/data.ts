@@ -107,7 +107,6 @@ export async function createTrack(input: CreateTrackInput): Promise<ApiResponse<
         audio_path: input.audioPath,
         duration_seconds: input.durationSeconds,
         source_type: "upload",
-        youtube_video_id: null,
       })
       .select("*")
       .single();

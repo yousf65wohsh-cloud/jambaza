@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/Button";
 import { HeadphonesIcon, RefreshIcon, VideoIcon } from "@/components/ui/icons";
 import { useRoomSync } from "@/lib/rooms/useRoomSync";
 import { cn, formatTime } from "@/lib/utils";
-import { usePlayerStore } from "@/stores/player";
 
 function StatusPill({ tone, children }: { tone: "success" | "danger" | "muted"; children: string }) {
   return (
@@ -43,18 +42,12 @@ export function RoomClient({ roomId }: { roomId: string }) {
     loadRoomPlayback,
   } = useRoomSync(roomId);
 
-  const currentTrack = usePlayerStore((state) => state.currentTrack);
-  const roomVideoLoaded =
-    Boolean(room) &&
-    currentTrack?.sourceType === "youtube" &&
-    currentTrack.youtubeVideoId === room?.videoId;
-
   return (
     <main className="space-y-6">
       <PageHeader
         eyebrow="غرفة استماع"
         title="استمعوا معاً"
-        description="المضيف يتحكم بالمقطع، والأعضاء يستقبلون المزامنة تلقائياً. لا يتم إخفاء مشغل يوتيوب أبداً."
+        description="المضيف يتحكم بالمقطع، والأعضاء يستقبلون المزامنة تلقائياً."
       />
 
       <div className="card overflow-hidden">
@@ -69,13 +62,7 @@ export function RoomClient({ roomId }: { roomId: string }) {
               <p className="text-muted text-sm">جارٍ تحميل الغرفة...</p>
             ) : room ? (
               <>
-                <p className="text-lg font-bold">منطقة تشغيل يوتيوب</p>
-                <p className="text-muted max-w-md text-xs leading-6">
-                  فيديو الغرفة:{" "}
-                  <span dir="ltr" className="text-foreground font-mono">
-                    {room.videoId}
-                  </span>
-                </p>
+                <p className="text-lg font-bold">منطقة تشغيل الغرفة</p>
                 <p className="text-muted text-[11px]">
                   {room.isPlaying ? "الغرفة قيد التشغيل" : "الغرفة متوقفة"} — الموضع{" "}
                   <span className="tabular-nums">{formatTime(room.positionSeconds)}</span>
@@ -92,7 +79,7 @@ export function RoomClient({ roomId }: { roomId: string }) {
           </div>
 
           <p className="text-muted absolute inset-x-4 bottom-3 text-center text-[10px] leading-5">
-            المشغل الرسمي المرئي يظهر أعلى شريط التشغيل أثناء الاستماع، ولا يمكن إخفاؤه.
+            سيُعرض مشغل الغرفة هنا في مرحلة لاحقة.
           </p>
         </div>
 
@@ -130,7 +117,7 @@ export function RoomClient({ roomId }: { roomId: string }) {
               className="gap-2"
             >
               <HeadphonesIcon className="size-4" />
-              {roomVideoLoaded ? "إعادة تحميل فيديو الغرفة" : "تشغيل فيديو الغرفة"}
+              تحميل مقطع الغرفة
             </Button>
 
             <Button

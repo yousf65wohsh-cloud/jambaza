@@ -65,7 +65,7 @@ export function PlayerBar() {
             </p>
             <p className="text-muted truncate text-xs">
               {currentTrack
-                ? (currentTrack.artist ?? (currentTrack.sourceType === "youtube" ? "يوتيوب" : "مقطع مرفوع"))
+                ? (currentTrack.artist ?? "مقطع مرفوع")
                 : "اختر أغنية للبدء"}
             </p>
           </div>

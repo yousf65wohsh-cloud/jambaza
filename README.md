@@ -115,8 +115,7 @@ supabase/
 - Email/password sign-up and sign-in with Supabase Auth, Arabic validation and error messages, and protected-route middleware.
 - Persistent player bar with Zustand state (`currentTrack`, `queue`, `isPlaying`, `position`, `volume`), queue controls, seek and volume.
 - Uploaded audio playback through a hidden `<audio>` element: IndexedDB blob first, then a short-lived signed URL from the private `audio` bucket.
-- YouTube playback through the **official YouTube IFrame Player API** in a visible, fixed panel that stays on screen during playback.
-- Listening-room UI with host/member roles, Realtime subscription to `listening_rooms`, host-only writes, and seek correction only beyond a 2-second drift.
+- Listening-room UI with host/member roles, Realtime subscription to `listening_rooms`, host-only writes, and a playback-sync placeholder that will reuse the 2-second drift rule.
 - PWA manifest, Serwist service worker, app-shell precache, `/offline` fallback, and an online/offline indicator.
 - Full database migration with RLS on every table, signup profile trigger, `covers` (public) and `audio` (private) storage buckets, and Realtime enabled for `listening_rooms`.
 - Typed errors and API response helpers, plus Vitest coverage for drift logic and offline cache helpers.
@@ -132,7 +131,6 @@ supabase/
 
 ## Notes
 
-- YouTube tracks are played **only** through the official YouTube IFrame Player API, with the player visibly rendered. There is no downloader or audio extraction of any kind.
 - Offline caching applies **only** to files the user uploaded themselves.
 
 ## Tests

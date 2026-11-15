@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
+import { RoomClient } from "@/components/rooms/RoomClient";
 import { RoomMembersPanel } from "@/components/rooms/RoomMembersPanel";
-import { RoomPageClient } from "@/components/rooms/RoomPageClient";
 
 export const metadata: Metadata = {
   title: "غرفة استماع",
@@ -12,7 +12,7 @@ export default async function RoomPage({ params }: { params: Promise<{ id: strin
 
   return (
     <>
-      <RoomPageClient roomId={id} />
+      <RoomClient roomId={id} />
       <RoomMembersPanel roomId={id} />
     </>
   );

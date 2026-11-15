@@ -33,9 +33,3 @@ export function mapTrackRow(row: TrackRow): Track {
 export function isUploadTrack(track: Track): boolean {
   return track.sourceType === "upload";
 }
-
-export function isYouTubeTrack(
-  track: Track,
-): track is Track & { youtubeVideoId: string } {
-  return track.sourceType === "youtube" && Boolean(track.youtubeVideoId);
-}

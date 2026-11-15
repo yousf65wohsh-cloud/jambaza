@@ -58,9 +58,6 @@ function RoomCard({ room }: { room: RoomSummary }) {
           >
             {host ? "أنت المضيف" : "عضو"}
           </span>
-          <span className="border-border bg-surface-2 text-muted inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium">
-            {room.videoId ? "فيديو محدد" : "بانتظار الفيديو"}
-          </span>
         </div>
       </div>
     </Link>

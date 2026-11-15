@@ -11,8 +11,6 @@ import {
 } from "@/types/room";
 import type { ListeningRoomRow } from "@/types/database";
 
-import { applyRoomPlayback } from "./playback";
-
 export type RealtimeStatus = "connecting" | "connected" | "error";
 
 export interface UseRoomSyncResult {
@@ -32,7 +30,8 @@ export interface UseRoomSyncResult {
  * Subscribes to Realtime changes on a single `listening_rooms` row.
  *
  * Write rules: only the host writes (enforced by RLS too). Members never
- * publish; they apply remote state with 2-second drift correction.
+ * publish. Loading remote playback is a placeholder for now; the drift
+ * correction it will use lives in `./drift`.
  */
 export function useRoomSync(roomId: string): UseRoomSyncResult {
   const [room, setRoom] = useState<ListeningRoom | null>(null);
@@ -115,11 +114,6 @@ export function useRoomSync(roomId: string): UseRoomSyncResult {
         (payload) => {
           const remote = mapListeningRoomRow(payload.new as ListeningRoomRow);
           setRoom(remote);
-
-          // Hosts are the source of truth; only members apply remote state.
-          if (userIdRef.current && remote.hostId !== userIdRef.current) {
-            applyRoomPlayback(remote);
-          }
         },
       )
       .subscribe((status) => {
@@ -145,23 +139,16 @@ export function useRoomSync(roomId: string): UseRoomSyncResult {
     setError(null);
 
     const state = usePlayerStore.getState();
-    const currentVideoId =
-      state.currentTrack?.sourceType === "youtube" ? state.currentTrack.youtubeVideoId : null;
 
-    // Members: pull the latest room state into the local player.
+    // Members: applying remote playback is a placeholder for now.
     if (userIdRef.current && room && room.hostId !== userIdRef.current) {
-      const result = applyRoomPlayback(room);
-      setNotice(
-        result.seeked
-          ? "تمت مزامنة التشغيل مع الغرفة."
-          : "التشغيل متزامن مع الغرفة بالفعل.",
-      );
+      setNotice("مزامنة التشغيل مع الغرفة غير متاحة بعد. ستُفعَّل في مرحلة لاحقة.");
       return;
     }
 
     // Hosts: publish the current playback state.
-    if (!currentVideoId) {
-      setError("شغّل فيديو الغرفة أولاً، ثم اضغط مزامنة.");
+    if (!state.currentTrack) {
+      setError("شغّل مقطعاً أولاً، ثم اضغط مزامنة.");
       return;
     }
 
@@ -171,7 +158,6 @@ export function useRoomSync(roomId: string): UseRoomSyncResult {
       const { data, error: updateError } = await supabase
         .from("listening_rooms")
         .update({
-          video_id: currentVideoId,
           is_playing: state.isPlaying,
           position_seconds: Math.max(0, state.position),
         })
@@ -185,7 +171,7 @@ export function useRoomSync(roomId: string): UseRoomSyncResult {
       }
 
       setRoom(mapListeningRoomRow(data));
-      setNotice("تمت مزامنة الغرفة مع الأعضاء.");
+      setNotice("تمت مزامنة حالة التشغيل مع الأعضاء.");
     } catch {
       setError("تعذّرت مزامنة الغرفة. تحقق من اتصالك بالإنترنت.");
     } finally {
@@ -195,8 +181,7 @@ export function useRoomSync(roomId: string): UseRoomSyncResult {
 
   const loadRoomPlayback = useCallback(() => {
     if (!room) return;
-    applyRoomPlayback(room);
-    setNotice("تم تحميل فيديو الغرفة في المشغل.");
+    setNotice("تحميل مقطع الغرفة في المشغل غير متاح بعد. سيُفعَّل في مرحلة لاحقة.");
   }, [room]);
 
   return {
