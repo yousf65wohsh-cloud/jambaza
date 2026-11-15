@@ -27,6 +27,10 @@ export interface CreateTrackInput {
   coverUrl: string | null;
   audioPath: string;
   durationSeconds: number | null;
+  description?: string | null;
+  credits?: string | null;
+  releaseDate?: string | null;
+  isPublished?: boolean;
 }
 
 async function getSupabaseAndUser() {
@@ -107,6 +111,10 @@ export async function createTrack(input: CreateTrackInput): Promise<ApiResponse<
         audio_path: input.audioPath,
         duration_seconds: input.durationSeconds,
         source_type: "upload",
+        description: input.description?.trim() || null,
+        credits: input.credits?.trim() || null,
+        release_date: input.releaseDate || null,
+        is_published: input.isPublished ?? false,
       })
       .select("*")
       .single();

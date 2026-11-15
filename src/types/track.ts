@@ -14,6 +14,10 @@ export interface Track {
   durationSeconds: number | null;
   sourceType: TrackSource;
   youtubeVideoId: string | null;
+  description: string | null;
+  credits: string | null;
+  releaseDate: string | null;
+  isPublished: boolean;
 }
 
 export function mapTrackRow(row: TrackRow): Track {
@@ -27,6 +31,10 @@ export function mapTrackRow(row: TrackRow): Track {
     durationSeconds: row.duration_seconds,
     sourceType: row.source_type,
     youtubeVideoId: row.youtube_video_id,
+    description: row.description,
+    credits: row.credits,
+    releaseDate: row.release_date,
+    isPublished: row.is_published,
   };
 }
 

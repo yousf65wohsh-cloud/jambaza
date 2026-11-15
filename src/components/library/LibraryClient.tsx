@@ -36,7 +36,13 @@ function TrackCover({ track }: { track: Track }) {
   );
 }
 
-export function LibraryClient({ showSuccess }: { showSuccess: boolean }) {
+export function LibraryClient({
+  showSuccess,
+  uploadDenied = false,
+}: {
+  showSuccess: boolean;
+  uploadDenied?: boolean;
+}) {
   const setTrack = usePlayerStore((state) => state.setTrack);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +51,11 @@ export function LibraryClient({ showSuccess }: { showSuccess: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(
-    showSuccess ? "تم رفع الأغنية بنجاح." : null,
+    showSuccess
+      ? "تم رفع الأغنية بنجاح."
+      : uploadDenied
+        ? "رفع الأغاني متاح فقط لحسابات الفنانين أو المشرفين."
+        : null,
   );
   const [reloadKey, setReloadKey] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Track | null>(null);

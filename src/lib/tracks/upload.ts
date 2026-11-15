@@ -24,6 +24,10 @@ export interface UploadProgress {
 export interface UploadTrackInput {
   title: string;
   artist: string | null;
+  description: string | null;
+  credits: string | null;
+  releaseDate: string | null;
+  isPublished: boolean;
   audioFile: File;
   coverFile: File | null;
   onProgress?: (progress: UploadProgress) => void;
@@ -141,6 +145,10 @@ export async function uploadTrack(input: UploadTrackInput): Promise<ApiResponse<
         duration === null || !Number.isFinite(duration)
           ? null
           : Math.max(0, Math.round(duration)),
+      description: input.description,
+      credits: input.credits,
+      releaseDate: input.releaseDate,
+      isPublished: input.isPublished,
     });
 
     if (!result.ok) {

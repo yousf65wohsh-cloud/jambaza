@@ -1,14 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { UploadForm } from "@/components/upload/UploadForm";
+import { getCurrentUserRole } from "@/lib/tracks/roles";
+import { canUpload } from "@/lib/upload/access";
 
 export const metadata: Metadata = {
   title: "رفع أغنية",
 };
 
-export default function UploadPage() {
+export default async function UploadPage() {
+  const role = await getCurrentUserRole();
+
+  if (!canUpload(role)) {
+    redirect("/library?upload=denied");
+  }
+
   return (
     <main className="space-y-6">
       <div className="space-y-2">

@@ -1,6 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type TrackSource = "upload" | "youtube";
+export type ProfileRole = "listener" | "artist" | "admin";
 export type FriendshipStatus = "pending" | "accepted";
 export type FriendshipDirection = "incoming" | "outgoing" | "accepted";
 
@@ -13,6 +14,8 @@ export interface Database {
           username: string;
           display_name: string | null;
           avatar_url: string | null;
+          role: ProfileRole;
+          friend_code: string;
           created_at: string;
           updated_at: string;
         };
@@ -21,6 +24,8 @@ export interface Database {
           username: string;
           display_name?: string | null;
           avatar_url?: string | null;
+          role?: ProfileRole;
+          friend_code?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -28,6 +33,8 @@ export interface Database {
           username?: string;
           display_name?: string | null;
           avatar_url?: string | null;
+          role?: ProfileRole;
+          friend_code?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -43,6 +50,10 @@ export interface Database {
           duration_seconds: number | null;
           source_type: TrackSource;
           youtube_video_id: string | null;
+          description: string | null;
+          credits: string | null;
+          release_date: string | null;
+          is_published: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -56,6 +67,10 @@ export interface Database {
           duration_seconds?: number | null;
           source_type: TrackSource;
           youtube_video_id?: string | null;
+          description?: string | null;
+          credits?: string | null;
+          release_date?: string | null;
+          is_published?: boolean;
         };
         Update: {
           title?: string;
@@ -65,6 +80,10 @@ export interface Database {
           duration_seconds?: number | null;
           source_type?: TrackSource;
           youtube_video_id?: string | null;
+          description?: string | null;
+          credits?: string | null;
+          release_date?: string | null;
+          is_published?: boolean;
           updated_at?: string;
         };
         Relationships: [];

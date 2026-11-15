@@ -53,6 +53,10 @@ export function UploadForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
+  const [description, setDescription] = useState("");
+  const [credits, setCredits] = useState("");
+  const [releaseDate, setReleaseDate] = useState("");
+  const [isPublished, setIsPublished] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
@@ -148,6 +152,10 @@ export function UploadForm() {
     const result = await uploadTrack({
       title: trimmedTitle,
       artist: artist.trim() || null,
+      description: description.trim() || null,
+      credits: credits.trim() || null,
+      releaseDate: releaseDate || null,
+      isPublished,
       audioFile: audioFile as File,
       coverFile,
       onProgress: setProgress,
@@ -202,6 +210,60 @@ export function UploadForm() {
           placeholder="مثال: ليلى"
           disabled={busy}
         />
+
+        <div className="space-y-1.5">
+          <label htmlFor="track-description" className="block text-sm font-medium">
+            الوصف (اختياري)
+          </label>
+          <textarea
+            id="track-description"
+            name="description"
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="اكتب نبذة عن الأغنية..."
+            rows={3}
+            disabled={busy}
+            className="field resize-y"
+          />
+        </div>
+
+        <Input
+          label="الاعتمادات (اختياري)"
+          name="credits"
+          type="text"
+          value={credits}
+          onChange={(event) => setCredits(event.target.value)}
+          placeholder="مثال: كلمات وألحان..."
+          disabled={busy}
+        />
+
+        <Input
+          label="تاريخ الإصدار (اختياري)"
+          name="releaseDate"
+          type="date"
+          value={releaseDate}
+          onChange={(event) => setReleaseDate(event.target.value)}
+          disabled={busy}
+          dir="ltr"
+          className="text-left"
+        />
+
+        <label className="border-border bg-surface-2/40 flex cursor-pointer items-start gap-3 rounded-xl border p-3">
+          <input
+            type="checkbox"
+            name="isPublished"
+            checked={isPublished}
+            onChange={(event) => setIsPublished(event.target.checked)}
+            disabled={busy}
+            className="accent-accent mt-1 size-4 shrink-0"
+          />
+          <span className="space-y-0.5">
+            <span className="block text-sm font-medium">نشر الأغنية في الكتالوج</span>
+            <span className="text-muted block text-xs leading-5">
+              عند التفعيل ستظهر الأغنية لكل المستخدمين في الكتالوج العام.
+            </span>
+          </span>
+        </label>
 
         <div className="space-y-2">
           <Input
