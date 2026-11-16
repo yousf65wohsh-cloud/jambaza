@@ -23,6 +23,8 @@ import { EmptyState } from "../ui/EmptyState";
 import { Input } from "../ui/Input";
 import { Spinner } from "../ui/Spinner";
 import { UsersIcon } from "../ui/icons";
+import { AddFriendByCodeForm } from "./AddFriendByCodeForm";
+import { FriendCodeCard } from "./FriendCodeCard";
 import { RemoveFriendDialog } from "./RemoveFriendDialog";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -240,6 +242,14 @@ export function FriendsClient() {
     setReloadKey((current) => current + 1);
   }
 
+  function handleAddedByCode(profile: FriendProfile) {
+    const name = profile.displayName || profile.username;
+
+    setActionError(null);
+    setNotice(`تم إرسال طلب الصداقة إلى ${name}.`);
+    setReloadKey((current) => current + 1);
+  }
+
   async function handleConfirmRemove() {
     if (!removeTarget || removing) return;
 
@@ -315,6 +325,10 @@ export function FriendsClient() {
           {actionError}
         </p>
       ) : null}
+
+      <AddFriendByCodeForm onAdded={handleAddedByCode} />
+
+      <FriendCodeCard />
 
       <Card>
         <CardHeader>

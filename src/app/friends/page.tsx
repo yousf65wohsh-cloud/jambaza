@@ -10,7 +10,10 @@ export const metadata: Metadata = {
 export default function FriendsPage() {
   return (
     <main className="space-y-6">
-      <PageHeader title="الأصدقاء" description="ابحث عن مستمعين، أرسل طلبات الصداقة، وأدر أصدقاءك." />
+      <PageHeader
+        title="الأصدقاء"
+        description="أضف أصدقاءك برمز الصديق أو بالبحث، وأدر طلبات الصداقة."
+      />
 
       <FriendsClient />
     </main>
