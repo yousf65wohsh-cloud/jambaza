@@ -235,6 +235,21 @@ export interface Database {
     };
     Views: { [_ in never]: never };
     Functions: {
+      find_profile_by_friend_code: {
+        Args: {
+          p_code: string;
+        };
+        Returns: {
+          id: string;
+          username: string;
+          display_name: string | null;
+          avatar_url: string | null;
+        }[];
+      };
+      regenerate_my_friend_code: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
       list_my_friendships: {
         Args: Record<PropertyKey, never>;
         Returns: {

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { searchProfiles } from "./data";
+import { addFriendByCode, searchProfiles } from "./data";
 import {
   groupFriendships,
   mapFriendshipRow,
+  normalizeFriendCode,
   normalizeSearchQuery,
   type MyFriendshipRow,
 } from "./mapping";
@@ -35,6 +36,19 @@ describe("normalizeSearchQuery", () => {
     expect(normalizeSearchQuery("")).toBeNull();
     expect(normalizeSearchQuery("   ")).toBeNull();
     expect(normalizeSearchQuery("\n\t")).toBeNull();
+  });
+});
+
+describe("normalizeFriendCode", () => {
+  it("trims and uppercases a valid code", () => {
+    expect(normalizeFriendCode("  abcd2345  ")).toBe("ABCD2345");
+  });
+
+  it("returns null for codes that cannot match the database format", () => {
+    expect(normalizeFriendCode("")).toBeNull();
+    expect(normalizeFriendCode("ABC")).toBeNull();
+    expect(normalizeFriendCode("ABCD-2345")).toBeNull();
+    expect(normalizeFriendCode("ABCD23456")).toBeNull();
   });
 });
 
@@ -115,5 +129,19 @@ describe("searchProfiles with an empty query", () => {
   it("returns an empty list without calling the server", async () => {
     await expect(searchProfiles("")).resolves.toEqual({ ok: true, data: [] });
     await expect(searchProfiles("   ")).resolves.toEqual({ ok: true, data: [] });
+  });
+});
+
+describe("addFriendByCode with an invalid code", () => {
+  it("rejects before touching the network and uses an Arabic message", async () => {
+    const result = await addFriendByCode("abc");
+
+    expect(result.ok).toBe(false);
+
+    if (!result.ok) {
+      expect(result.error.code).toBe("BAD_REQUEST");
+      expect(result.error.message).toContain("8");
+      expect(result.error.message).toMatch(/[\u0600-\u06FF]/);
+    }
   });
 });

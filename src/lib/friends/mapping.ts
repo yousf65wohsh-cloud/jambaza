@@ -35,6 +35,12 @@ export type MyFriendshipRow =
 export type ProfileSearchRow =
   Database["public"]["Functions"]["search_profiles"]["Returns"][number];
 
+/** Row shape returned by `public.find_profile_by_friend_code(p_code)`. */
+export type FriendCodeProfileRow =
+  Database["public"]["Functions"]["find_profile_by_friend_code"]["Returns"][number];
+
+const FRIEND_CODE_PATTERN = /^[A-Z0-9]{8}$/;
+
 /**
  * Trims a search box value. Returns `null` when nothing is left so callers can
  * skip the network request instead of asking Postgres for an empty prefix.
@@ -43,6 +49,17 @@ export function normalizeSearchQuery(query: string): string | null {
   const trimmed = query.trim();
 
   return trimmed.length === 0 ? null : trimmed;
+}
+
+/**
+ * Friend codes are stored as eight uppercase alphanumerics. Input is trimmed
+ * and uppercased, then checked against the database format constraint. Returns
+ * `null` for anything that cannot be a valid code.
+ */
+export function normalizeFriendCode(code: string): string | null {
+  const normalized = code.trim().toUpperCase();
+
+  return FRIEND_CODE_PATTERN.test(normalized) ? normalized : null;
 }
 
 export function mapProfileRow(row: ProfileSearchRow): FriendProfile {
