@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LibraryClient } from "@/components/library/LibraryClient";
+import { PlaylistsClient } from "@/components/library/PlaylistsClient";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 export const metadata: Metadata = {
@@ -21,13 +22,17 @@ export default async function LibraryPage({
     : params.upload === "denied";
 
   return (
-    <main className="space-y-6">
+    <main className="space-y-10">
       <PageHeader
         title="مكتبتي"
-        description="أغانيك المرفوعة. اضغط على أي أغنية لتشغيلها أو احذفها من مكتبتك."
+        description="قوائمك الشخصية وأغانيك المرفوعة."
       />
 
-      <LibraryClient showSuccess={uploaded} uploadDenied={uploadDenied} />
+      <PlaylistsClient />
+
+      <div className="border-border border-t pt-8">
+        <LibraryClient showSuccess={uploaded} uploadDenied={uploadDenied} />
+      </div>
     </main>
   );
 }

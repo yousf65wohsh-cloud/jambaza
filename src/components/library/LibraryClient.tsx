@@ -143,7 +143,24 @@ export function LibraryClient({
   }
 
   return (
-    <div className="space-y-4">
+    <section className="space-y-4" aria-labelledby="my-tracks-heading">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 id="my-tracks-heading" className="text-xl font-extrabold tracking-tight">
+            أغانيي المرفوعة
+          </h2>
+          <p className="text-muted text-sm">
+            {tracks.length > 0 ? `${tracks.length} أغنية في مكتبتك` : "أغانيك المرفوعة."}
+          </p>
+        </div>
+        <Link href="/library/upload">
+          <Button size="sm" className="gap-2">
+            <UploadIcon className="size-4" />
+            رفع أغنية
+          </Button>
+        </Link>
+      </div>
+
       {notice ? (
         <p
           role="status"
@@ -152,18 +169,6 @@ export function LibraryClient({
           {notice}
         </p>
       ) : null}
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-muted text-sm">
-          {tracks.length > 0 ? `${tracks.length} أغنية في مكتبتك` : "مكتبتك"}
-        </p>
-        <Link href="/library/upload">
-          <Button size="sm" className="gap-2">
-            <UploadIcon className="size-4" />
-            رفع أغنية
-          </Button>
-        </Link>
-      </div>
 
       {error ? (
         <div className="border-danger/30 bg-danger/5 rounded-xl border p-4 text-sm">
@@ -278,6 +283,6 @@ export function LibraryClient({
         }}
         onConfirm={() => void handleConfirmDelete()}
       />
-    </div>
+    </section>
   );
 }
