@@ -6,15 +6,23 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { clamp } from "@/lib/utils";
 import { mapTrackRow, type Track } from "@/types/track";
+import { mapListeningRoomRow, type ListeningRoom } from "@/types/room";
+
+import { checkDrift } from "./drift";
 import {
-  mapListeningRoomRow,
-  type ListeningRoom,
-} from "@/types/room";
-import type { ListeningRoomRow } from "@/types/database";
+  ROOM_BROADCAST_INTERVAL_MS,
+  ROOM_SYNC_EVENT,
+  estimateRoomPosition,
+  expectedRemotePosition,
+  isRoomSyncPayload,
+  toRoomTrackSnapshot,
+  type RoomSyncPayload,
+  type RoomTrackSnapshot,
+} from "./sync";
 
 export type RealtimeStatus = "connecting" | "connected" | "error";
 
-/** Short-lived signed URL lifetime for the private audio bucket. */
+/** Signed URL lifetime for the private audio bucket. */
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 const ROOM_LOAD_FAILED = "تعذّر تحميل غرفة الاستماع. حاول مرة أخرى.";
@@ -22,14 +30,7 @@ const ROOM_NOT_FOUND = "لم يتم العثور على الغرفة، أو أن
 const TRACK_LOAD_FAILED = "تعذّر تحميل مقطع الغرفة. حاول مرة أخرى.";
 const AUDIO_SIGN_FAILED = "تعذّر تجهيز رابط الصوت. تحقق من اتصالك ثم أعد المحاولة.";
 const AUDIO_PLAY_FAILED = "تعذّر تشغيل ملف الصوت. قد يكون الملف تالفاً أو غير مدعوم.";
-
-export interface RoomTrackSnapshot {
-  id: string;
-  title: string;
-  artist: string | null;
-  coverUrl: string | null;
-  durationSeconds: number | null;
-}
+const WAITING_FOR_URL = "بانتظار رابط الصوت من المضيف…";
 
 export interface UseRoomSyncResult {
   room: ListeningRoom | null;
@@ -45,7 +46,6 @@ export interface UseRoomSyncResult {
   position: number;
   duration: number | null;
   needsGesture: boolean;
-  syncNow: () => Promise<void>;
   selectTrack: (track: Track) => Promise<void>;
   play: () => Promise<void>;
   pause: () => Promise<void>;
@@ -54,22 +54,19 @@ export interface UseRoomSyncResult {
   retryPlayback: () => Promise<void>;
 }
 
-function toTrackSnapshot(track: Track): RoomTrackSnapshot {
-  return {
-    id: track.id,
-    title: track.title,
-    artist: track.artist,
-    coverUrl: track.coverUrl,
-    durationSeconds: track.durationSeconds,
-  };
-}
-
 /**
- * Loads one listening room, resolves the selected Storage track to a signed
- * URL, and lets the host drive an <audio> element.
+ * Room playback synced over Supabase Realtime Broadcast on `room:{id}`.
  *
- * The host is the only writer. Members receive state from Database changes in
- * this step; Broadcast position sync is layered on next.
+ * The host is the single source of truth: only the host writes to
+ * `listening_rooms`, and only when playback state changes (track, play, pause,
+ * seek, end). Position updates go out over Broadcast every 5 seconds instead of
+ * being written to the database.
+ *
+ * Members never publish. They apply the host's track/state immediately and only
+ * seek when the position drifts by more than two seconds (`checkDrift`).
+ *
+ * The private audio bucket permits owner-only signing, so the host signs the
+ * track URL and includes it in the Broadcast payload.
  */
 export function useRoomSync(
   roomId: string,
@@ -88,10 +85,15 @@ export function useRoomSync(
   const [duration, setDuration] = useState<number | null>(null);
   const [needsGesture, setNeedsGesture] = useState(false);
 
+  const isHost = Boolean(userId && room && room.hostId === userId);
+
   const userIdRef = useRef<string | null>(null);
   const isHostRef = useRef(false);
+  const channelRef = useRef<RealtimeChannel | null>(null);
   const currentTrackRef = useRef<Track | null>(null);
   const signedUrlRef = useRef<string | null>(null);
+  /** Track id whose URL is currently assigned to the audio element. */
+  const audioTrackIdRef = useRef<string | null>(null);
   const isPlayingRef = useRef(false);
   const positionRef = useRef(0);
   const pendingSeekRef = useRef<number | null>(null);
@@ -141,6 +143,30 @@ export function useRoomSync(
     [roomId],
   );
 
+  /** Broadcast helper: no database writes happen here. */
+  const broadcastNow = useCallback(() => {
+    const channel = channelRef.current;
+    if (!channel) return;
+
+    const audio = audioRef.current;
+    const payload: RoomSyncPayload = {
+      state: isPlayingRef.current ? "playing" : "paused",
+      position: Math.max(0, audio?.currentTime ?? positionRef.current),
+      trackId: currentTrackRef.current?.id ?? null,
+      sentAt: Date.now(),
+      signedUrl: signedUrlRef.current,
+      track: currentTrackRef.current
+        ? toRoomTrackSnapshot(currentTrackRef.current)
+        : null,
+    };
+
+    void channel.send({
+      type: "broadcast",
+      event: ROOM_SYNC_EVENT,
+      payload,
+    });
+  }, [audioRef]);
+
   const loadHostTrack = useCallback(
     async (
       trackId: string,
@@ -178,10 +204,11 @@ export function useRoomSync(
 
       currentTrackRef.current = resolved;
       signedUrlRef.current = signed.signedUrl;
+      audioTrackIdRef.current = resolved.id;
       positionRef.current = safePosition;
       isPlayingRef.current = options.autoplay;
 
-      setTrack(toTrackSnapshot(resolved));
+      setTrack(toRoomTrackSnapshot(resolved));
       setPosition(safePosition);
       setIsPlaying(options.autoplay);
 
@@ -193,10 +220,120 @@ export function useRoomSync(
         audio.load();
       }
 
+      // Announce as soon as the initial track/URL is ready. If the channel is
+      // not subscribed yet, the connected effect broadcasts instead.
+      broadcastNow();
+
       return true;
     },
-    [audioRef],
+    [audioRef, broadcastNow],
   );
+
+  const applyRemote = useCallback(
+    (payload: RoomSyncPayload) => {
+      if (isHostRef.current) return;
+
+      const audio = audioRef.current;
+      const target = expectedRemotePosition(payload);
+
+      isPlayingRef.current = payload.state === "playing";
+      positionRef.current = target;
+      setIsPlaying(payload.state === "playing");
+      setPosition(target);
+      setRoom((current) =>
+        current
+          ? {
+              ...current,
+              trackId: payload.trackId,
+              isPlaying: payload.state === "playing",
+              positionSeconds: target,
+            }
+          : current,
+      );
+
+      if (payload.track) {
+        setTrack(payload.track);
+      } else if (payload.trackId) {
+        setTrack({
+          id: payload.trackId,
+          title: "مقطع الغرفة",
+          artist: null,
+          coverUrl: null,
+          durationSeconds: null,
+        });
+      } else {
+        setTrack(null);
+      }
+
+      if (!payload.trackId) {
+        audioTrackIdRef.current = null;
+        signedUrlRef.current = null;
+
+        if (audio) {
+          audio.pause();
+          audio.removeAttribute("src");
+          audio.load();
+        }
+
+        return;
+      }
+
+      // A new track always needs the host's signed URL. Track changes are
+      // applied immediately; the 2-second threshold only covers drift while the
+      // same track is playing.
+      if (audioTrackIdRef.current !== payload.trackId) {
+        if (!payload.signedUrl || !audio) {
+          setNotice(WAITING_FOR_URL);
+          return;
+        }
+
+        setNotice(null);
+        setError(null);
+        audioTrackIdRef.current = payload.trackId;
+        signedUrlRef.current = payload.signedUrl;
+        pendingSeekRef.current = target;
+        playOnLoadRef.current = payload.state === "playing";
+        audio.src = payload.signedUrl;
+        audio.load();
+        return;
+      }
+
+      if (!audio) return;
+
+      if (audio.readyState >= 1) {
+        const drift = checkDrift({
+          localSeconds: audio.currentTime,
+          remoteSeconds: target,
+        });
+
+        if (drift.shouldSeek) {
+          try {
+            audio.currentTime = drift.targetSeconds;
+          } catch {
+            // Ignore unsupported seeks; the next Broadcast retries.
+          }
+        }
+      } else {
+        pendingSeekRef.current = target;
+      }
+
+      if (payload.state === "playing") {
+        if (audio.paused) {
+          void startAudio();
+        }
+      } else if (!audio.paused) {
+        audio.pause();
+      }
+    },
+    [audioRef, startAudio],
+  );
+
+  // Keep the Broadcast handler fresh without re-subscribing on every render.
+  const applyRemoteRef = useRef(applyRemote);
+
+  useEffect(() => {
+    applyRemoteRef.current = applyRemote;
+  }, [applyRemote]);
 
   useEffect(() => {
     let cancelled = false;
@@ -244,17 +381,18 @@ export function useRoomSync(
 
         const mapped = mapListeningRoomRow(data);
         const host = mapped.hostId === user.id;
+        const initialPosition = estimateRoomPosition(mapped);
 
         isHostRef.current = host;
         setRoom(mapped);
         setIsPlaying(mapped.isPlaying);
         isPlayingRef.current = mapped.isPlaying;
-        positionRef.current = mapped.positionSeconds;
-        setPosition(mapped.positionSeconds);
+        positionRef.current = initialPosition;
+        setPosition(initialPosition);
 
         if (host && mapped.trackId) {
           await loadHostTrack(mapped.trackId, {
-            position: mapped.positionSeconds,
+            position: initialPosition,
             autoplay: mapped.isPlaying,
           });
         }
@@ -274,27 +412,13 @@ export function useRoomSync(
     void load();
 
     channel = supabase
-      .channel(`listening-room:${roomId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "listening_rooms",
-          filter: `id=eq.${roomId}`,
-        },
-        (payload) => {
-          const remote = mapListeningRoomRow(payload.new as ListeningRoomRow);
-          setRoom(remote);
-
-          if (!isHostRef.current) {
-            setIsPlaying(remote.isPlaying);
-            isPlayingRef.current = remote.isPlaying;
-            positionRef.current = remote.positionSeconds;
-            setPosition(remote.positionSeconds);
-          }
-        },
-      )
+      .channel(`room:${roomId}`, {
+        config: { broadcast: { self: false } },
+      })
+      .on("broadcast", { event: ROOM_SYNC_EVENT }, (message) => {
+        if (!isRoomSyncPayload(message.payload)) return;
+        applyRemoteRef.current(message.payload);
+      })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           setRealtimeStatus("connected");
@@ -303,15 +427,31 @@ export function useRoomSync(
         }
       });
 
+    channelRef.current = channel;
+
     return () => {
       cancelled = true;
+      channelRef.current = null;
       if (channel) {
         void supabase.removeChannel(channel);
       }
     };
   }, [loadHostTrack, roomId]);
 
-  // Keep the audio element's time and metadata mirrored into React state.
+  // Host: announce the current state now and then every five seconds. This is
+  // Broadcast-only; the database is never written from this interval.
+  useEffect(() => {
+    if (!isHost || realtimeStatus !== "connected") return;
+
+    broadcastNow();
+    const interval = window.setInterval(broadcastNow, ROOM_BROADCAST_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [broadcastNow, isHost, realtimeStatus]);
+
+  // Mirror the audio element's time and metadata into React state.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -350,7 +490,11 @@ export function useRoomSync(
       positionRef.current = 0;
       setIsPlaying(false);
       setPosition(0);
-      void persistHostState({ is_playing: false, position_seconds: 0 });
+
+      void (async () => {
+        await persistHostState({ is_playing: false, position_seconds: 0 });
+        broadcastNow();
+      })();
     }
 
     function handleError() {
@@ -369,7 +513,7 @@ export function useRoomSync(
       element.removeEventListener("ended", handleEnded);
       element.removeEventListener("error", handleError);
     };
-  }, [audioRef, persistHostState, startAudio]);
+  }, [audioRef, broadcastNow, persistHostState, startAudio]);
 
   const play = useCallback(async () => {
     if (!isHostRef.current || !currentTrackRef.current) return;
@@ -379,13 +523,21 @@ export function useRoomSync(
 
     setIsPlaying(true);
     isPlayingRef.current = true;
-    await startAudio();
+
+    const started = await startAudio();
+
+    if (!started) {
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+      return;
+    }
 
     await persistHostState({
       is_playing: true,
       position_seconds: Math.max(0, audio.currentTime),
     });
-  }, [audioRef, persistHostState, startAudio]);
+    broadcastNow();
+  }, [audioRef, broadcastNow, persistHostState, startAudio]);
 
   const pause = useCallback(async () => {
     if (!isHostRef.current || !currentTrackRef.current) return;
@@ -401,7 +553,8 @@ export function useRoomSync(
       is_playing: false,
       position_seconds: Math.max(0, audio.currentTime),
     });
-  }, [audioRef, persistHostState]);
+    broadcastNow();
+  }, [audioRef, broadcastNow, persistHostState]);
 
   const togglePlay = useCallback(async () => {
     if (isPlayingRef.current) {
@@ -433,9 +586,10 @@ export function useRoomSync(
 
       if (isHostRef.current) {
         await persistHostState({ position_seconds: target });
+        broadcastNow();
       }
     },
-    [audioRef, persistHostState],
+    [audioRef, broadcastNow, persistHostState],
   );
 
   const selectTrack = useCallback(
@@ -466,10 +620,11 @@ export function useRoomSync(
 
         currentTrackRef.current = next;
         signedUrlRef.current = signed.signedUrl;
+        audioTrackIdRef.current = next.id;
         positionRef.current = 0;
         isPlayingRef.current = true;
 
-        setTrack(toTrackSnapshot(next));
+        setTrack(toRoomTrackSnapshot(next));
         setPosition(0);
         setIsPlaying(true);
 
@@ -487,6 +642,8 @@ export function useRoomSync(
           position_seconds: 0,
         });
 
+        broadcastNow();
+
         if (persisted) {
           setNotice("تم تشغيل المقطع في الغرفة.");
         }
@@ -497,25 +654,8 @@ export function useRoomSync(
         setIsSyncing(false);
       }
     },
-    [audioRef, persistHostState],
+    [audioRef, broadcastNow, persistHostState],
   );
-
-  const syncNow = useCallback(async () => {
-    if (!isHostRef.current) {
-      setNotice("أنت عضو في الغرفة، وستصل حالة التشغيل من المضيف تلقائياً.");
-      return;
-    }
-
-    const audio = audioRef.current;
-    const persisted = await persistHostState({
-      is_playing: isPlayingRef.current,
-      position_seconds: Math.max(0, audio?.currentTime ?? positionRef.current),
-    });
-
-    if (persisted) {
-      setNotice("تمت مزامنة حالة التشغيل مع الأعضاء.");
-    }
-  }, [audioRef, persistHostState]);
 
   const retryPlayback = useCallback(async () => {
     await startAudio();
@@ -524,7 +664,7 @@ export function useRoomSync(
   return {
     room,
     userId,
-    isHost: Boolean(userId && room && room.hostId === userId),
+    isHost,
     loading,
     error,
     realtimeStatus,
@@ -535,7 +675,6 @@ export function useRoomSync(
     position,
     duration,
     needsGesture,
-    syncNow,
     selectTrack,
     play,
     pause,
