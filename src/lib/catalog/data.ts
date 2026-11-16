@@ -6,9 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import type { ApiResponse } from "@/types/api";
 import type { Database } from "@/types/database";
 import {
+  mapTrackCommentRow,
+  mapTrackRatingRow,
   mapTrackRow,
   type RatedTrack,
   type Track,
+  type TrackComment,
+  type TrackRating,
 } from "@/types/track";
 
 import { averageRating } from "./rating";
@@ -22,6 +26,7 @@ const TOP_RATED_LIMIT = 5;
 const CATALOG_LOAD_FAILED = "تعذّر تحميل الكتالوج. حاول مرة أخرى.";
 const TRACK_LOAD_FAILED = "تعذّر تحميل الأغنية. حاول مرة أخرى.";
 const RATINGS_LOAD_FAILED = "تعذّر تحميل التقييمات. حاول مرة أخرى.";
+const COMMENTS_LOAD_FAILED = "تعذّر تحميل التعليقات. حاول مرة أخرى.";
 
 export interface CatalogPage {
   tracks: Track[];
@@ -177,6 +182,88 @@ export async function getTrack(trackId: string): Promise<ApiResponse<Track | nul
     return apiOk(data ? mapTrackRow(data) : null);
   } catch (error) {
     return apiFail<Track | null>(error, TRACK_LOAD_FAILED);
+  }
+}
+
+/** Every rating for a track, oldest first. */
+export async function listTrackRatings(trackId: string): Promise<ApiResponse<TrackRating[]>> {
+  if (!isTrackId(trackId)) {
+    return apiOk<TrackRating[]>([]);
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("track_ratings")
+      .select("*")
+      .eq("track_id", trackId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      throw new AppError("INTERNAL", RATINGS_LOAD_FAILED, { cause: error });
+    }
+
+    return apiOk((data ?? []).map(mapTrackRatingRow));
+  } catch (error) {
+    return apiFail<TrackRating[]>(error, RATINGS_LOAD_FAILED);
+  }
+}
+
+/** The signed-in user's rating for a track, or null when they have not rated it. */
+export async function getMyTrackRating(trackId: string): Promise<ApiResponse<number | null>> {
+  if (!isTrackId(trackId)) {
+    return apiOk<number | null>(null);
+  }
+
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return apiOk<number | null>(null);
+    }
+
+    const { data, error } = await supabase
+      .from("track_ratings")
+      .select("rating")
+      .eq("track_id", trackId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError("INTERNAL", RATINGS_LOAD_FAILED, { cause: error });
+    }
+
+    return apiOk<number | null>(data?.rating ?? null);
+  } catch (error) {
+    return apiFail<number | null>(error, RATINGS_LOAD_FAILED);
+  }
+}
+
+/** Comments on a track, newest first. */
+export async function listTrackComments(trackId: string): Promise<ApiResponse<TrackComment[]>> {
+  if (!isTrackId(trackId)) {
+    return apiOk<TrackComment[]>([]);
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("track_comments")
+      .select("*")
+      .eq("track_id", trackId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw new AppError("INTERNAL", COMMENTS_LOAD_FAILED, { cause: error });
+    }
+
+    return apiOk((data ?? []).map(mapTrackCommentRow));
+  } catch (error) {
+    return apiFail<TrackComment[]>(error, COMMENTS_LOAD_FAILED);
   }
 }
 
