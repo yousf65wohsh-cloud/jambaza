@@ -14,6 +14,10 @@ import type {
   Friendship,
   GroupedFriendships,
 } from "@/lib/friends/mapping";
+import {
+  listFriendsNowListening,
+  type NowListeningEntry,
+} from "@/lib/friends/presence";
 
 import type { ApiResponse } from "@/types/api";
 
@@ -22,12 +26,13 @@ import { Card, CardDescription, CardHeader, CardTitle } from "../ui/Card";
 import { EmptyState } from "../ui/EmptyState";
 import { Input } from "../ui/Input";
 import { Spinner } from "../ui/Spinner";
-import { UsersIcon } from "../ui/icons";
+import { HeadphonesIcon, UsersIcon } from "../ui/icons";
 import { AddFriendByCodeForm } from "./AddFriendByCodeForm";
 import { FriendCodeCard } from "./FriendCodeCard";
 import { RemoveFriendDialog } from "./RemoveFriendDialog";
 
 const SEARCH_DEBOUNCE_MS = 300;
+const PRESENCE_REFRESH_MS = 60_000;
 
 type Relationship = "accepted" | "incoming" | "outgoing";
 type SearchStatus = "idle" | "loading" | "done";
@@ -62,6 +67,23 @@ function Identity({ profile }: { profile: FriendProfile }) {
         </span>
       </span>
     </div>
+  );
+}
+
+function NowListeningLine({ entry }: { entry: NowListeningEntry }) {
+  return (
+    <p className="text-muted mt-2 flex min-w-0 items-center gap-1.5 text-xs">
+      <HeadphonesIcon className="text-accent size-3.5 shrink-0" />
+      <span className="shrink-0">يستمع الآن إلى</span>
+      <span dir="auto" className="text-foreground truncate font-bold">
+        {entry.track.title}
+      </span>
+      {entry.track.artist ? (
+        <span dir="auto" className="truncate">
+          — {entry.track.artist}
+        </span>
+      ) : null}
+    </p>
   );
 }
 
@@ -107,6 +129,11 @@ export function FriendsClient() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
+  const [nowListening, setNowListening] = useState<Map<string, NowListeningEntry>>(
+    () => new Map(),
+  );
+  const [presenceError, setPresenceError] = useState<string | null>(null);
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<FriendProfile[]>([]);
   const [searchStatus, setSearchStatus] = useState<SearchStatus>("idle");
@@ -148,6 +175,34 @@ export function FriendsClient() {
 
     return () => {
       active = false;
+    };
+  }, [reloadKey]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function refreshPresence() {
+      const result = await listFriendsNowListening();
+
+      if (!active) return;
+
+      if (result.ok) {
+        setNowListening(
+          new Map(result.data.map((entry) => [entry.friendId, entry])),
+        );
+        setPresenceError(null);
+      } else {
+        setPresenceError(result.error.message);
+      }
+    }
+
+    void refreshPresence();
+
+    const timer = setInterval(() => void refreshPresence(), PRESENCE_REFRESH_MS);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
     };
   }, [reloadKey]);
 
@@ -492,29 +547,43 @@ export function FriendsClient() {
             )}
           </Section>
 
-          <Section title="أصدقائي" description="المستخدمون الذين قبلت صداقتهم.">
+          <Section
+            title="أصدقائي"
+            description="المستخدمون الذين قبلت صداقتهم، مع ما يستمعون إليه الآن."
+          >
             {friendships.accepted.length === 0 ? (
               <EmptyLine>لا يوجد أصدقاء بعد.</EmptyLine>
             ) : (
               <ul className="space-y-2">
-                {friendships.accepted.map((friendship) => (
-                  <Row key={friendship.id}>
-                    <Identity profile={friendship.friend} />
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      disabled={removing || Boolean(actionKey)}
-                      onClick={() => {
-                        setRemoveTarget(friendship);
-                        setRemoveError(null);
-                      }}
-                    >
-                      إزالة
-                    </Button>
-                  </Row>
-                ))}
+                {friendships.accepted.map((friendship) => {
+                  const listening = nowListening.get(friendship.friend.id);
+
+                  return (
+                    <Row key={friendship.id}>
+                      <div className="min-w-0 flex-1">
+                        <Identity profile={friendship.friend} />
+                        {listening ? <NowListeningLine entry={listening} /> : null}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        disabled={removing || Boolean(actionKey)}
+                        onClick={() => {
+                          setRemoveTarget(friendship);
+                          setRemoveError(null);
+                        }}
+                      >
+                        إزالة
+                      </Button>
+                    </Row>
+                  );
+                })}
               </ul>
             )}
+
+            {presenceError && friendships.accepted.length > 0 ? (
+              <p className="text-muted mt-3 text-xs">{presenceError}</p>
+            ) : null}
           </Section>
         </>
       ) : null}
