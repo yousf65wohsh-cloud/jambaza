@@ -50,7 +50,8 @@ export function RoomClient({ roomId }: { roomId: string }) {
     needsGesture,
     selectTrack,
     togglePlay,
-    seek,
+    previewSeek,
+    commitSeek,
     retryPlayback,
   } = useRoomSync(roomId, audioRef);
 
@@ -151,7 +152,14 @@ export function RoomClient({ roomId }: { roomId: string }) {
                   max={progressMax}
                   step={0.1}
                   value={progressValue}
-                  onChange={(event) => void seek(Number(event.target.value))}
+                  onChange={(event) => previewSeek(Number(event.target.value))}
+                  onPointerUp={(event) =>
+                    void commitSeek(Number(event.currentTarget.value))
+                  }
+                  onPointerCancel={(event) =>
+                    void commitSeek(Number(event.currentTarget.value))
+                  }
+                  onKeyUp={(event) => void commitSeek(Number(event.currentTarget.value))}
                   disabled={!isHost || !track || !knownDuration}
                   aria-label="موضع تشغيل الغرفة"
                   className="accent-accent h-1.5 w-full cursor-pointer disabled:cursor-not-allowed"
@@ -216,6 +224,7 @@ export function RoomClient({ roomId }: { roomId: string }) {
             {isHost && room ? (
               <RoomTrackPicker
                 currentTrackId={room.trackId}
+                ownerId={room.hostId}
                 disabled={loading || isSyncing}
                 onSelect={(next) => void selectTrack(next)}
               />

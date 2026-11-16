@@ -50,8 +50,21 @@ export interface UseRoomSyncResult {
   play: () => Promise<void>;
   pause: () => Promise<void>;
   togglePlay: () => Promise<void>;
-  seek: (seconds: number) => Promise<void>;
+  /** Moves the audio element for a live drag without writing to the database. */
+  previewSeek: (seconds: number) => void;
+  /** Commits one seek to the database and Broadcast when the drag ends. */
+  commitSeek: (seconds: number) => Promise<void>;
   retryPlayback: () => Promise<void>;
+}
+
+function seekTarget(audio: HTMLAudioElement, seconds: number): number {
+  const safe = Number.isFinite(seconds) ? seconds : audio.currentTime;
+  const max =
+    Number.isFinite(audio.duration) && audio.duration > 0
+      ? audio.duration
+      : Number.MAX_SAFE_INTEGER;
+
+  return clamp(safe, 0, max);
 }
 
 /**
@@ -564,16 +577,35 @@ export function useRoomSync(
     }
   }, [pause, play]);
 
-  const seek = useCallback(
-    async (seconds: number) => {
+  const previewSeek = useCallback(
+    (seconds: number) => {
+      if (!isHostRef.current) return;
+
       const audio = audioRef.current;
       if (!audio) return;
 
-      const max =
-        Number.isFinite(audio.duration) && audio.duration > 0
-          ? audio.duration
-          : Number.MAX_SAFE_INTEGER;
-      const target = clamp(seconds, 0, max);
+      const target = seekTarget(audio, seconds);
+
+      try {
+        audio.currentTime = target;
+      } catch {
+        // Leave the element where it is when the source cannot seek.
+      }
+
+      positionRef.current = target;
+      setPosition(target);
+    },
+    [audioRef],
+  );
+
+  const commitSeek = useCallback(
+    async (seconds: number) => {
+      if (!isHostRef.current) return;
+
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      const target = seekTarget(audio, seconds);
 
       try {
         audio.currentTime = target;
@@ -584,10 +616,8 @@ export function useRoomSync(
       positionRef.current = target;
       setPosition(target);
 
-      if (isHostRef.current) {
-        await persistHostState({ position_seconds: target });
-        broadcastNow();
-      }
+      await persistHostState({ position_seconds: target });
+      broadcastNow();
     },
     [audioRef, broadcastNow, persistHostState],
   );
@@ -679,7 +709,8 @@ export function useRoomSync(
     play,
     pause,
     togglePlay,
-    seek,
+    previewSeek,
+    commitSeek,
     retryPlayback,
   };
 }

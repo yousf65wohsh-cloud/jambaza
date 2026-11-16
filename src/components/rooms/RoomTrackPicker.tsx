@@ -9,6 +9,8 @@ import type { Track } from "@/types/track";
 
 interface RoomTrackPickerProps {
   currentTrackId: string | null;
+  /** Host id. Only tracks this user can sign from the private bucket qualify. */
+  ownerId: string;
   disabled?: boolean;
   onSelect: (track: Track) => void;
 }
@@ -18,8 +20,12 @@ interface PlaylistGroup {
   tracks: Track[];
 }
 
-function isPlayableUpload(track: Track): boolean {
-  return track.sourceType === "upload" && Boolean(track.audioPath);
+function isPlayableUpload(track: Track, ownerId: string): boolean {
+  return (
+    track.ownerId === ownerId &&
+    track.sourceType === "upload" &&
+    Boolean(track.audioPath)
+  );
 }
 
 function trackLabel(track: Track): string {
@@ -36,6 +42,7 @@ function trackLabel(track: Track): string {
  */
 export function RoomTrackPicker({
   currentTrackId,
+  ownerId,
   disabled = false,
   onSelect,
 }: RoomTrackPickerProps) {
@@ -65,7 +72,11 @@ export function RoomTrackPicker({
         return;
       }
 
-      setLibrary(libraryResult.data.tracks.filter(isPlayableUpload));
+      setLibrary(
+        libraryResult.data.tracks.filter((track) =>
+          isPlayableUpload(track, ownerId),
+        ),
+      );
 
       if (!playlistsResult.ok) {
         setError(playlistsResult.error.message);
@@ -85,7 +96,9 @@ export function RoomTrackPicker({
         if (!result.ok || !result.data) continue;
 
         const playlist = result.data;
-        const tracks = playlist.tracks.filter(isPlayableUpload);
+        const tracks = playlist.tracks.filter((track) =>
+          isPlayableUpload(track, ownerId),
+        );
 
         if (tracks.length > 0) {
           groups.push({ playlist, tracks });
@@ -101,7 +114,7 @@ export function RoomTrackPicker({
     return () => {
       active = false;
     };
-  }, []);
+  }, [ownerId]);
 
   const tracksById = useMemo(() => {
     const map = new Map<string, Track>();
