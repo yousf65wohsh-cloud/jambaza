@@ -44,13 +44,13 @@ export function PlayerEngine() {
   const audioSrc = resolvedAudio?.trackId === trackId ? resolvedAudio.url : null;
   const error = failure?.trackId === trackId ? failure.message : null;
 
-  // Best-effort "now listening" presence whenever a new track starts. A failed
-  // write never blocks playback and is retried the next time a track changes.
+  // Best-effort "now listening" presence whenever a track starts or playback
+  // resumes. A failed write never blocks playback and is retried next time.
   useEffect(() => {
-    if (!trackId) return;
+    if (!trackId || !isPlaying) return;
 
     void reportMyPresence(trackId);
-  }, [trackId]);
+  }, [trackId, isPlaying]);
 
   // Resolve an upload's audio source: IndexedDB first, signed URL otherwise.
   useEffect(() => {
