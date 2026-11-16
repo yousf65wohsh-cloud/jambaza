@@ -141,6 +141,27 @@ export function MusicIcon(props: IconProps) {
   );
 }
 
+export function StarIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path
+        d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9L12 3Z"
+        fill="currentColor"
+        stroke="none"
+      />
+    </Svg>
+  );
+}
+
+export function ListPlusIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 6h9M4 12h9M4 18h6" />
+      <path d="M17 13v8M13 17h8" />
+    </Svg>
+  );
+}
+
 export function VideoIcon(props: IconProps) {
   return (
     <Svg {...props}>

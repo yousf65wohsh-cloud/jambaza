@@ -13,7 +13,7 @@ export function BottomNav() {
       aria-label="التنقل الرئيسي"
       className="border-border/70 bg-background/95 fixed inset-x-0 bottom-0 z-50 h-16 border-t backdrop-blur-xl md:hidden"
     >
-      <ul className="grid h-full grid-cols-5">
+      <ul className="grid h-full grid-cols-6">
         {NAV_ITEMS.map((item) => {
           const active = isNavItemActive(pathname, item);
           const Icon = item.icon;

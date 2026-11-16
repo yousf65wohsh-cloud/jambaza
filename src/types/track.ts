@@ -1,4 +1,4 @@
-import type { TrackRow, TrackSource } from "./database";
+import type { TrackCommentRow, TrackRatingRow, TrackRow, TrackSource } from "./database";
 
 /**
  * A playable track. Mirrors `public.tracks` but is safe to keep in the
@@ -20,6 +20,26 @@ export interface Track {
   isPublished: boolean;
 }
 
+/** A catalog track together with its aggregate rating. */
+export interface RatedTrack extends Track {
+  averageRating: number;
+  ratingCount: number;
+}
+
+export interface TrackRating {
+  userId: string;
+  rating: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TrackComment {
+  id: string;
+  userId: string;
+  body: string;
+  createdAt: string;
+}
+
 export function mapTrackRow(row: TrackRow): Track {
   return {
     id: row.id,
@@ -35,6 +55,24 @@ export function mapTrackRow(row: TrackRow): Track {
     credits: row.credits,
     releaseDate: row.release_date,
     isPublished: row.is_published,
+  };
+}
+
+export function mapTrackRatingRow(row: TrackRatingRow): TrackRating {
+  return {
+    userId: row.user_id,
+    rating: row.rating,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function mapTrackCommentRow(row: TrackCommentRow): TrackComment {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    body: row.body,
+    createdAt: row.created_at,
   };
 }
 

@@ -126,6 +126,50 @@ export interface Database {
         };
         Relationships: [];
       };
+      track_ratings: {
+        Row: {
+          track_id: string;
+          user_id: string;
+          rating: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          track_id: string;
+          user_id: string;
+          rating: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          rating?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      track_comments: {
+        Row: {
+          id: string;
+          track_id: string;
+          user_id: string;
+          body: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          track_id: string;
+          user_id: string;
+          body: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       friendships: {
         Row: {
           id: string;
@@ -223,6 +267,8 @@ export interface Database {
 
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 export type TrackRow = Database["public"]["Tables"]["tracks"]["Row"];
+export type TrackRatingRow = Database["public"]["Tables"]["track_ratings"]["Row"];
+export type TrackCommentRow = Database["public"]["Tables"]["track_comments"]["Row"];
 export type PlaylistRow = Database["public"]["Tables"]["playlists"]["Row"];
 export type PlaylistTrackRow = Database["public"]["Tables"]["playlist_tracks"]["Row"];
 export type FriendshipRow = Database["public"]["Tables"]["friendships"]["Row"];
