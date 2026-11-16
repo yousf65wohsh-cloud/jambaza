@@ -232,6 +232,23 @@ export interface Database {
         };
         Relationships: [];
       };
+      user_presence: {
+        Row: {
+          user_id: string;
+          track_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          track_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          track_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -249,6 +266,20 @@ export interface Database {
       regenerate_my_friend_code: {
         Args: Record<PropertyKey, never>;
         Returns: string;
+      };
+      list_friends_now_listening: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          friend_id: string;
+          friend_username: string;
+          friend_display_name: string | null;
+          friend_avatar_url: string | null;
+          track_id: string;
+          track_title: string;
+          track_artist: string | null;
+          track_cover_url: string | null;
+          updated_at: string;
+        }[];
       };
       list_my_friendships: {
         Args: Record<PropertyKey, never>;
@@ -289,3 +320,4 @@ export type PlaylistTrackRow = Database["public"]["Tables"]["playlist_tracks"]["
 export type FriendshipRow = Database["public"]["Tables"]["friendships"]["Row"];
 export type ListeningRoomRow = Database["public"]["Tables"]["listening_rooms"]["Row"];
 export type RoomMemberRow = Database["public"]["Tables"]["room_members"]["Row"];
+export type UserPresenceRow = Database["public"]["Tables"]["user_presence"]["Row"];

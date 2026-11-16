@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 
+import { reportMyPresence } from "@/lib/friends/presence";
 import { getOfflineBlob } from "@/lib/offline/files";
 import { createClient } from "@/lib/supabase/client";
 import { usePlayerStore } from "@/stores/player";
@@ -42,6 +43,14 @@ export function PlayerEngine() {
 
   const audioSrc = resolvedAudio?.trackId === trackId ? resolvedAudio.url : null;
   const error = failure?.trackId === trackId ? failure.message : null;
+
+  // Best-effort "now listening" presence whenever a new track starts. A failed
+  // write never blocks playback and is retried the next time a track changes.
+  useEffect(() => {
+    if (!trackId) return;
+
+    void reportMyPresence(trackId);
+  }, [trackId]);
 
   // Resolve an upload's audio source: IndexedDB first, signed URL otherwise.
   useEffect(() => {
