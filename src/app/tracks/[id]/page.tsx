@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AddToPlaylistMenu } from "@/components/catalog/AddToPlaylistMenu";
 import { FeedbackForm } from "@/components/catalog/FeedbackForm";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
 import { TrackCover } from "@/components/catalog/TrackCover";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ListPlusIcon, StarIcon } from "@/components/ui/icons";
+import { StarIcon } from "@/components/ui/icons";
 import {
   getMyTrackRating,
   getTrack,
@@ -157,16 +158,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="secondary"
-              disabled
-              className="gap-2"
-              title="سيُضاف إلى قائمة التشغيل في خطوة لاحقة"
-            >
-              <ListPlusIcon className="size-4" />
-              أضف إلى قائمة التشغيل
-            </Button>
-            <span className="text-muted text-xs">قريباً</span>
+            <AddToPlaylistMenu trackId={track.id} />
           </div>
         </div>
       </article>
