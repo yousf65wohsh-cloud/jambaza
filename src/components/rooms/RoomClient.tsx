@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
+import { usePlayerStore } from "@/stores/player";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/Button";
-import { HeadphonesIcon, RefreshIcon, VideoIcon } from "@/components/ui/icons";
+import { HeadphonesIcon, MusicIcon, PauseIcon, PlayIcon } from "@/components/ui/icons";
 import { useRoomSync } from "@/lib/rooms/useRoomSync";
 import { cn, formatTime } from "@/lib/utils";
 
@@ -32,6 +34,7 @@ function StatusPill({ tone, children }: { tone: "success" | "danger" | "muted"; 
 }
 
 export function RoomClient({ roomId }: { roomId: string }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const {
     room,
     isHost,
@@ -40,10 +43,28 @@ export function RoomClient({ roomId }: { roomId: string }) {
     realtimeStatus,
     isSyncing,
     notice,
-    syncNow,
-    loadRoomPlayback,
+    track,
+    isPlaying,
+    position,
+    duration,
+    needsGesture,
     selectTrack,
-  } = useRoomSync(roomId);
+    togglePlay,
+    seek,
+    retryPlayback,
+  } = useRoomSync(roomId, audioRef);
+
+  // Room playback is separate from the global player. Stop the global queue so
+  // the two audio elements never play over each other.
+  useEffect(() => {
+    usePlayerStore.getState().pause();
+  }, []);
+
+  const knownDuration =
+    duration && duration > 0 ? duration : (track?.durationSeconds ?? null);
+  const progressMax = knownDuration ?? 1;
+  const progressValue = Math.min(position, progressMax);
+  const waitingForHost = Boolean(room && !isHost && !track);
 
   return (
     <main className="space-y-6">
@@ -54,112 +75,171 @@ export function RoomClient({ roomId }: { roomId: string }) {
       />
 
       <div className="card overflow-hidden">
-        <div className="from-surface-2 via-surface relative flex aspect-video items-center justify-center overflow-hidden bg-gradient-to-br to-black">
+        <audio ref={audioRef} preload="metadata" className="hidden" />
+
+        <div className="from-surface-2 via-surface relative overflow-hidden bg-gradient-to-br to-black p-5 sm:p-7">
           <div className="bg-accent/10 absolute -top-16 -end-16 size-64 rounded-full blur-3xl" />
-          <div className="relative flex flex-col items-center gap-3 px-6 text-center">
-            <div className="bg-accent/10 text-accent grid size-16 place-items-center rounded-2xl">
-              <VideoIcon className="size-8" />
+
+          <div className="relative flex flex-col gap-5">
+            <div className="flex flex-wrap items-center gap-4">
+              {track?.coverUrl ? (
+                // Supabase cover URLs are public URLs; next/image is not used.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={track.coverUrl}
+                  alt={`غلاف ${track.title}`}
+                  className="bg-surface-2 size-20 shrink-0 rounded-2xl object-cover"
+                />
+              ) : (
+                <span className="bg-accent/10 text-accent grid size-20 shrink-0 place-items-center rounded-2xl">
+                  <MusicIcon className="size-8" />
+                </span>
+              )}
+
+              <div className="min-w-0 flex-1">
+                {loading ? (
+                  <p className="text-muted text-sm">جارٍ تحميل الغرفة...</p>
+                ) : room ? (
+                  <>
+                    <p className="truncate text-lg font-bold">
+                      {track?.title ??
+                        (waitingForHost ? "بانتظار اختيار المضيف…" : "لم يُختر مقطع بعد")}
+                    </p>
+                    <p className="text-muted truncate text-sm">
+                      {track?.artist ??
+                        (waitingForHost
+                          ? "سيصل المقطع من المضيف تلقائياً."
+                          : "اختر مقطعاً من مكتبتك أو قائمة تشغيل.")}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-lg font-bold">الغرفة غير متاحة</p>
+                    <p className="text-muted max-w-md text-sm leading-6">
+                      {error ?? "لم يتم العثور على الغرفة، أو أنك لست عضواً فيها."}
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {room ? (
+                  <StatusPill tone={isPlaying ? "success" : "muted"}>
+                    {isPlaying ? "قيد التشغيل" : "متوقف"}
+                  </StatusPill>
+                ) : null}
+                {room ? (
+                  <StatusPill tone={isHost ? "success" : "muted"}>
+                    {isHost ? "أنت المضيف" : "عضو"}
+                  </StatusPill>
+                ) : null}
+                <StatusPill tone={realtimeStatus === "connected" ? "success" : "muted"}>
+                  {realtimeStatus === "connected"
+                    ? "متصل بالغرفة"
+                    : realtimeStatus === "error"
+                      ? "تعذّر الاتصال"
+                      : "جارٍ الاتصال..."}
+                </StatusPill>
+              </div>
             </div>
 
-            {loading ? (
-              <p className="text-muted text-sm">جارٍ تحميل الغرفة...</p>
-            ) : room ? (
-              <>
-                <p className="text-lg font-bold">منطقة تشغيل الغرفة</p>
-                <p className="text-muted text-[11px]">
-                  {room.isPlaying ? "الغرفة قيد التشغيل" : "الغرفة متوقفة"} — الموضع{" "}
-                  <span className="tabular-nums">{formatTime(room.positionSeconds)}</span>
-                </p>
-                <p dir="ltr" className="text-muted font-mono text-[10px]">
-                  {room.trackId ? `track: ${room.trackId.slice(0, 8)}…` : "no track selected"}
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-lg font-bold">الغرفة غير متاحة</p>
-                <p className="text-muted max-w-md text-sm leading-6">
-                  {error ?? "لم يتم العثور على الغرفة، أو أنك لست عضواً فيها."}
-                </p>
-              </>
-            )}
-          </div>
-
-          <p className="text-muted absolute inset-x-4 bottom-3 text-center text-[10px] leading-5">
-            سيُعرض مشغل الغرفة هنا في مرحلة لاحقة.
-          </p>
-        </div>
-
-        <div className="space-y-4 p-4">
-          <div className="flex flex-wrap items-center gap-2">
             {room ? (
-              <>
-                <StatusPill tone={room.isPlaying ? "success" : "muted"}>
-                  {room.isPlaying ? "قيد التشغيل" : "متوقف"}
-                </StatusPill>
-                <StatusPill tone={isHost ? "success" : "muted"}>
-                  {isHost ? "أنت المضيف" : "عضو"}
-                </StatusPill>
-              </>
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={progressMax}
+                  step={0.1}
+                  value={progressValue}
+                  onChange={(event) => void seek(Number(event.target.value))}
+                  disabled={!isHost || !track || !knownDuration}
+                  aria-label="موضع تشغيل الغرفة"
+                  className="accent-accent h-1.5 w-full cursor-pointer disabled:cursor-not-allowed"
+                />
+                <div className="text-muted flex items-center justify-between text-[11px] tabular-nums">
+                  <span>{formatTime(position)}</span>
+                  <span>{knownDuration ? formatTime(knownDuration) : "--:--"}</span>
+                </div>
+              </div>
             ) : null}
 
-            <StatusPill tone={realtimeStatus === "connected" ? "success" : "muted"}>
-              {realtimeStatus === "connected"
-                ? "متصل بالغرفة"
-                : realtimeStatus === "error"
-                  ? "تعذّر الاتصال"
-                  : "جارٍ الاتصال..."}
-            </StatusPill>
+            <div className="flex flex-wrap items-center gap-3">
+              {isHost && room ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void togglePlay()}
+                    disabled={!track || isSyncing}
+                    aria-label={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
+                    title={isPlaying ? "إيقاف مؤقت" : "تشغيل"}
+                    className="bg-accent text-accent-foreground hover:bg-accent-hover grid size-12 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isPlaying ? (
+                      <PauseIcon className="size-5" />
+                    ) : (
+                      <PlayIcon className="size-5 ps-0.5" />
+                    )}
+                  </button>
 
-            <span className="text-muted ms-auto text-[11px]">
-              يُصحّح الفارق فقط عند تجاوزه ثانيتين.
-            </span>
+                  <span className="text-muted text-xs">
+                    أنت تتحكم بالتشغيل. تُكتب الحالة في قاعدة البيانات عند التشغيل أو
+                    الإيقاف أو التقديم فقط.
+                  </span>
+                </>
+              ) : null}
+
+              {room && !isHost ? (
+                <p className="text-muted text-xs leading-5">
+                  {needsGesture
+                    ? "المتصفح منع التشغيل التلقائي. اضغط لتمكين الصوت."
+                    : waitingForHost
+                      ? "سيبدأ التشغيل عند اختيار المضيف للمقطع."
+                      : "الأعضاء يستقبلون حالة التشغيل من المضيف فقط."}
+                </p>
+              ) : null}
+
+              {needsGesture ? (
+                <button
+                  type="button"
+                  onClick={() => void retryPlayback()}
+                  className="border-accent/40 bg-accent/10 text-accent hover:bg-accent/20 rounded-xl border px-3 py-2 text-xs font-medium transition-colors"
+                >
+                  تمكين الصوت
+                </button>
+              ) : null}
+
+              <StatusPill tone={realtimeStatus === "connected" ? "success" : "muted"}>
+                {realtimeStatus === "connected" ? "المزامنة جاهزة" : "جارٍ المزامنة..."}
+              </StatusPill>
+            </div>
+
+            {isHost && room ? (
+              <RoomTrackPicker
+                currentTrackId={room.trackId}
+                disabled={loading || isSyncing}
+                onSelect={(next) => void selectTrack(next)}
+              />
+            ) : null}
+
+            {notice ? (
+              <p role="status" className="text-success text-xs">
+                {notice}
+              </p>
+            ) : null}
+
+            {error ? (
+              <p role="alert" className="text-danger text-xs">
+                {error}
+              </p>
+            ) : null}
           </div>
+        </div>
 
-          {isHost && room ? (
-            <RoomTrackPicker
-              currentTrackId={room.trackId}
-              disabled={loading || isSyncing}
-              onSelect={(track) => void selectTrack(track.id)}
-            />
-          ) : null}
-
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              onClick={loadRoomPlayback}
-              disabled={!room || loading}
-              className="gap-2"
-            >
-              <HeadphonesIcon className="size-4" />
-              تحميل مقطع الغرفة
-            </Button>
-
-            <Button
-              onClick={() => void syncNow()}
-              loading={isSyncing}
-              disabled={!room || loading}
-              className="gap-2"
-            >
-              <RefreshIcon className="size-4" />
-              {isHost ? "مزامنة الغرفة" : "مزامنة مع الغرفة"}
-            </Button>
-
-            <Button variant="secondary" disabled title="قريباً">
-              إنشاء غرفة (قريباً)
-            </Button>
-          </div>
-
-          {notice ? (
-            <p role="status" className="text-success text-xs">
-              {notice}
-            </p>
-          ) : null}
-
-          {error ? (
-            <p role="alert" className="text-danger text-xs">
-              {error}
-            </p>
-          ) : null}
+        <div className="space-y-3 p-4">
+          <p className="text-muted text-[11px] leading-5">
+            يُصحّح موضع الأعضاء فقط عند تجاوز الفارق ثانيتين. روابط الصوت موقّعة وقصيرة
+            الأجل من مخزن الصوت الخاص.
+          </p>
 
           <dl className="border-border/70 grid gap-2 border-t pt-3 text-xs sm:grid-cols-2">
             <div className="flex items-center justify-between gap-3 sm:justify-start">
@@ -178,8 +258,9 @@ export function RoomClient({ roomId }: { roomId: string }) {
         </div>
       </div>
 
-      <p className="text-muted text-center text-[11px] leading-6">
-        إدارة الغرف والأعضاء ستُضاف في المرحلة التالية. حالياً تُدار العضوية من قاعدة البيانات.
+      <p className="text-muted flex items-center justify-center gap-2 text-center text-[11px] leading-6">
+        <HeadphonesIcon className="size-4" />
+        غرفة الاستماع خاصة بأعضائها؛ يشارك المضيف المقطع وحالة التشغيل فقط.
       </p>
     </main>
   );
