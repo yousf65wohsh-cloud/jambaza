@@ -15,35 +15,22 @@ interface RenamePlaylistDialogProps {
   onConfirm: (name: string) => void;
 }
 
-export function RenamePlaylistDialog({
+interface RenamePlaylistFormProps {
+  playlist: Playlist;
+  renaming: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onConfirm: (name: string) => void;
+}
+
+function RenamePlaylistForm({
   playlist,
   renaming,
   error,
   onCancel,
   onConfirm,
-}: RenamePlaylistDialogProps) {
-  const [name, setName] = useState("");
-
-  useEffect(() => {
-    if (playlist) {
-      setName(playlist.name);
-    }
-  }, [playlist]);
-
-  useEffect(() => {
-    if (!playlist) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !renaming) {
-        onCancel();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [playlist, renaming, onCancel]);
-
-  if (!playlist) return null;
+}: RenamePlaylistFormProps) {
+  const [name, setName] = useState(playlist.name);
 
   return (
     <div
@@ -92,5 +79,39 @@ export function RenamePlaylistDialog({
         </form>
       </div>
     </div>
+  );
+}
+
+export function RenamePlaylistDialog({
+  playlist,
+  renaming,
+  error,
+  onCancel,
+  onConfirm,
+}: RenamePlaylistDialogProps) {
+  useEffect(() => {
+    if (!playlist) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !renaming) {
+        onCancel();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [playlist, renaming, onCancel]);
+
+  if (!playlist) return null;
+
+  return (
+    <RenamePlaylistForm
+      key={playlist.id}
+      playlist={playlist}
+      renaming={renaming}
+      error={error}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
   );
 }
