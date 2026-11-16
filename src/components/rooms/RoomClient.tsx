@@ -6,6 +6,8 @@ import { HeadphonesIcon, RefreshIcon, VideoIcon } from "@/components/ui/icons";
 import { useRoomSync } from "@/lib/rooms/useRoomSync";
 import { cn, formatTime } from "@/lib/utils";
 
+import { RoomTrackPicker } from "./RoomTrackPicker";
+
 function StatusPill({ tone, children }: { tone: "success" | "danger" | "muted"; children: string }) {
   return (
     <span
@@ -40,6 +42,7 @@ export function RoomClient({ roomId }: { roomId: string }) {
     notice,
     syncNow,
     loadRoomPlayback,
+    selectTrack,
   } = useRoomSync(roomId);
 
   return (
@@ -66,6 +69,9 @@ export function RoomClient({ roomId }: { roomId: string }) {
                 <p className="text-muted text-[11px]">
                   {room.isPlaying ? "الغرفة قيد التشغيل" : "الغرفة متوقفة"} — الموضع{" "}
                   <span className="tabular-nums">{formatTime(room.positionSeconds)}</span>
+                </p>
+                <p dir="ltr" className="text-muted font-mono text-[10px]">
+                  {room.trackId ? `track: ${room.trackId.slice(0, 8)}…` : "no track selected"}
                 </p>
               </>
             ) : (
@@ -108,6 +114,14 @@ export function RoomClient({ roomId }: { roomId: string }) {
               يُصحّح الفارق فقط عند تجاوزه ثانيتين.
             </span>
           </div>
+
+          {isHost && room ? (
+            <RoomTrackPicker
+              currentTrackId={room.trackId}
+              disabled={loading || isSyncing}
+              onSelect={(track) => void selectTrack(track.id)}
+            />
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <Button

@@ -32,7 +32,7 @@ const UNIQUE_VIOLATION = "23505";
 export interface RoomSummary {
   id: string;
   hostId: string;
-  videoId: string;
+  trackId: string | null;
   isPlaying: boolean;
   positionSeconds: number;
   createdAt: string;
@@ -64,7 +64,7 @@ function mapRoomRow(row: ListeningRoomRow, viewerId: string): RoomSummary {
   return {
     id: row.id,
     hostId: row.host_id,
-    videoId: row.video_id,
+    trackId: row.track_id,
     isPlaying: row.is_playing,
     positionSeconds: row.position_seconds,
     createdAt: row.created_at,
@@ -96,8 +96,7 @@ async function fetchRoomHost(
 
 /**
  * Creates a room owned by the signed-in user and adds them as the first member.
- * `video_id` is NOT NULL in the schema, so it is stored as an empty string
- * until room playback is implemented.
+ * The host picks a track after the room exists, so `track_id` starts null.
  */
 export async function createRoom(): Promise<ApiResponse<{ id: string }>> {
   try {
@@ -105,7 +104,7 @@ export async function createRoom(): Promise<ApiResponse<{ id: string }>> {
 
     const { data, error } = await supabase
       .from("listening_rooms")
-      .insert({ host_id: userId, video_id: "" })
+      .insert({ host_id: userId })
       .select("id")
       .maybeSingle();
 

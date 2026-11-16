@@ -24,6 +24,8 @@ export interface UseRoomSyncResult {
   notice: string | null;
   syncNow: () => Promise<void>;
   loadRoomPlayback: () => void;
+  /** Host-only: stores the chosen Storage-hosted track on the room. */
+  selectTrack: (trackId: string) => Promise<void>;
 }
 
 /**
@@ -184,6 +186,47 @@ export function useRoomSync(roomId: string): UseRoomSyncResult {
     setNotice("تحميل مقطع الغرفة في المشغل غير متاح بعد. سيُفعَّل في مرحلة لاحقة.");
   }, [room]);
 
+  const selectTrack = useCallback(
+    async (trackId: string) => {
+      if (isSyncing) return;
+
+      if (!userIdRef.current || !room || room.hostId !== userIdRef.current) {
+        setError("المضيف فقط يمكنه اختيار مقطع الغرفة.");
+        return;
+      }
+
+      setError(null);
+      setNotice(null);
+      setIsSyncing(true);
+
+      try {
+        const { data, error: updateError } = await createClient()
+          .from("listening_rooms")
+          .update({
+            track_id: trackId,
+            is_playing: false,
+            position_seconds: 0,
+          })
+          .eq("id", roomId)
+          .select("*")
+          .single();
+
+        if (updateError || !data) {
+          setError("تعذّر اختيار مقطع الغرفة. تأكد من أنك المضيف وحاول مجدداً.");
+          return;
+        }
+
+        setRoom(mapListeningRoomRow(data));
+        setNotice("تم اختيار المقطع. سيتم تشغيله في المرحلة التالية من المزامنة.");
+      } catch {
+        setError("تعذّر اختيار مقطع الغرفة. تحقق من اتصالك بالإنترنت.");
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [isSyncing, room, roomId],
+  );
+
   return {
     room,
     userId,
@@ -195,5 +238,6 @@ export function useRoomSync(roomId: string): UseRoomSyncResult {
     notice,
     syncNow,
     loadRoomPlayback,
+    selectTrack,
   };
 }

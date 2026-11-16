@@ -195,7 +195,7 @@ export interface Database {
         Row: {
           id: string;
           host_id: string;
-          video_id: string;
+          track_id: string | null;
           is_playing: boolean;
           position_seconds: number;
           created_at: string;
@@ -204,12 +204,12 @@ export interface Database {
         Insert: {
           id?: string;
           host_id: string;
-          video_id: string;
+          track_id?: string | null;
           is_playing?: boolean;
           position_seconds?: number;
         };
         Update: {
-          video_id?: string;
+          track_id?: string | null;
           is_playing?: boolean;
           position_seconds?: number;
           updated_at?: string;
