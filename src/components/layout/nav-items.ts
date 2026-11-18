@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  HeadphonesIcon,
   HomeIcon,
   LibraryIcon,
   MusicIcon,
@@ -21,7 +20,6 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/search", label: "البحث", icon: SearchIcon },
   { href: "/library", label: "مكتبتي", icon: LibraryIcon },
   { href: "/friends", label: "الأصدقاء", icon: UsersIcon },
-  { href: "/rooms", label: "الاستماع المشترك", icon: HeadphonesIcon },
 ];
 
 export function isNavItemActive(pathname: string, item: NavItem): boolean {
