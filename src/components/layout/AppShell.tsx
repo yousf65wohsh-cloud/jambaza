@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
 
 const AUTH_ROUTES = ["/login", "/signup"];
-const PROTECTED_PREFIXES = ["/library", "/friends", "/rooms"];
+const PROTECTED_PREFIXES = ["/library", "/friends", "/rooms", "/account"];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
