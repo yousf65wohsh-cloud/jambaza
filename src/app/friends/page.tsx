@@ -17,8 +17,11 @@ export default function FriendsPage() {
         description="تابع من يستمع الآن، وأضف أصدقاءك برمز الصديق أو بالبحث في شريط التنقل، وأدر طلبات الصداقة."
       />
 
-      <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside aria-label="نشاط الأصدقاء ودعوات الاستماع" className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start">
+        <aside
+          aria-label="نشاط الأصدقاء ودعوات الاستماع"
+          className="space-y-4 lg:sticky lg:top-20"
+        >
           <ListeningInvitesPanel />
           <FriendsActivityPanel />
         </aside>

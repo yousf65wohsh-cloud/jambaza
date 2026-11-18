@@ -58,7 +58,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <Card>
+    <Card className="rise">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -70,7 +70,7 @@ function Section({
 
 function EmptyLine({ children }: { children: ReactNode }) {
   return (
-    <p className="border-border/70 text-muted rounded-xl border border-dashed px-3 py-4 text-center text-xs">
+    <p className="border-border text-muted rounded-control border border-dashed px-3 py-4 text-center text-xs">
       {children}
     </p>
   );
@@ -78,7 +78,7 @@ function EmptyLine({ children }: { children: ReactNode }) {
 
 function Row({ children }: { children: ReactNode }) {
   return (
-    <li className="border-border/70 bg-surface-2/40 flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3">
+    <li className="border-border bg-surface-2/40 hover:border-accent/40 hover:bg-surface-2/70 flex flex-wrap items-center justify-between gap-2 rounded-control border p-3 transition-colors">
       {children}
     </li>
   );
@@ -217,7 +217,7 @@ export function FriendsClient() {
     friendships.outgoing.length === 0;
 
   return (
-    <div className="space-y-4">
+    <div className="rise space-y-4">
       {notice ? (
         <p
           role="status"
@@ -241,7 +241,7 @@ export function FriendsClient() {
       <FriendCodeCard />
 
       {loading && !friendships ? (
-        <div className="border-border/80 bg-surface/50 flex items-center justify-center gap-3 rounded-2xl border border-dashed px-6 py-14">
+        <div className="border-border bg-surface/50 flex items-center justify-center gap-3 rounded-panel border border-dashed px-6 py-14">
           <Spinner />
           <span className="text-muted text-sm">جارٍ تحميل الأصدقاء…</span>
         </div>

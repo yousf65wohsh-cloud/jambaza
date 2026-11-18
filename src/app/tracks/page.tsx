@@ -155,7 +155,7 @@ function TrackPageContent() {
   if (!hasSession) {
     return (
       <main className="space-y-6">
-        <Link href="/music" className="text-muted hover:text-foreground text-xs font-medium">
+        <Link href="/music" className="text-muted hover:text-text text-xs font-medium">
           ← العودة إلى الموسيقى
         </Link>
         <SignInPrompt />
@@ -166,7 +166,7 @@ function TrackPageContent() {
   if (error) {
     return (
       <main className="space-y-6">
-        <Link href="/music" className="text-muted hover:text-foreground text-xs font-medium">
+        <Link href="/music" className="text-muted hover:text-text text-xs font-medium">
           ← العودة إلى الموسيقى
         </Link>
         <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
@@ -192,13 +192,13 @@ function TrackPageContent() {
     <main className="space-y-8">
       <Link
         href="/music"
-        className="text-muted hover:text-foreground text-xs font-medium transition-colors"
+        className="text-muted hover:text-text text-xs font-medium transition-colors"
       >
         ← العودة إلى الموسيقى
       </Link>
 
-      <article className="grid gap-6 sm:grid-cols-[16rem_1fr] sm:items-start">
-        <div className="border-border bg-surface overflow-hidden rounded-2xl border">
+      <article className="grid gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] md:items-start lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
+        <div className="border-border bg-surface shadow-raised rise overflow-hidden rounded-panel border">
           <TrackCover track={track} />
         </div>
 
@@ -211,7 +211,17 @@ function TrackPageContent() {
             <p dir="auto" className="text-muted text-lg">
               {track.artist || "فنان غير معروف"}
             </p>
+            <p className="text-muted text-xs">صدر في {formatReleaseDate(track.releaseDate)}</p>
           </div>
+
+          {track.credits ? (
+            <div className="space-y-1">
+              <p className="text-muted text-xs font-bold">الاعتمادات</p>
+              <p dir="auto" className="text-sm leading-6 whitespace-pre-line">
+                {track.credits}
+              </p>
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             {ratingsError ? (
@@ -257,34 +267,16 @@ function TrackPageContent() {
         </div>
       </article>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="space-y-3">
-          <h2 className="text-lg font-bold">الوصف</h2>
-          {track.description ? (
-            <p dir="auto" className="text-muted text-sm leading-7 whitespace-pre-line">
-              {track.description}
-            </p>
-          ) : (
-            <p className="text-muted text-sm">لا يوجد وصف لهذه الأغنية.</p>
-          )}
-        </Card>
-
-        <Card className="space-y-4">
-          <h2 className="text-lg font-bold">تفاصيل الأغنية</h2>
-          <dl className="space-y-3 text-sm">
-            <div className="border-border/60 flex items-start justify-between gap-4 border-b pb-3">
-              <dt className="text-muted shrink-0">تاريخ الإصدار</dt>
-              <dd className="text-end">{formatReleaseDate(track.releaseDate)}</dd>
-            </div>
-            <div className="space-y-1">
-              <dt className="text-muted">الاعتمادات</dt>
-              <dd dir="auto" className="leading-6 whitespace-pre-line">
-                {track.credits || "غير متوفر"}
-              </dd>
-            </div>
-          </dl>
-        </Card>
-      </div>
+      <Card className="space-y-3">
+        <h2 className="text-lg font-bold">الوصف</h2>
+        {track.description ? (
+          <p dir="auto" className="text-muted text-sm leading-7 whitespace-pre-line">
+            {track.description}
+          </p>
+        ) : (
+          <p className="text-muted text-sm">لا يوجد وصف لهذه الأغنية.</p>
+        )}
+      </Card>
 
       <FeedbackForm
         key={`${track.id}-${myRating ?? "none"}`}
@@ -311,7 +303,10 @@ function TrackPageContent() {
         ) : comments.length > 0 ? (
           <ul className="space-y-3">
             {comments.map((comment) => (
-              <li key={comment.id} className="card space-y-2 p-4">
+              <li
+                key={comment.id}
+                className="card hover:border-accent/30 space-y-2 p-4 transition-colors"
+              >
                 <p dir="auto" className="text-sm leading-7 whitespace-pre-line">
                   {comment.body}
                 </p>
