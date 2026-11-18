@@ -7,7 +7,6 @@ import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { TrackCard } from "@/components/catalog/TrackCard";
 import { TrackCover } from "@/components/catalog/TrackCover";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
-import { FriendsActivityPanel } from "@/components/friends/FriendsActivityPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { HomeSearch } from "@/components/search/HomeSearch";
 import { HomeSearchResults } from "@/components/search/HomeSearchResults";
@@ -160,8 +159,6 @@ function HomeContent({ urlQuery }: { urlQuery: string | null }) {
         <HomeSearchResults query={query} />
       ) : (
         <div className="space-y-10">
-          <FriendsActivityPanel hideWhenEmpty className="max-w-md" />
-
           {latest.length > 0 ? (
             <LatestHero track={latest[0]} onPlay={(selected) => setTrack(selected, latest)} />
           ) : null}

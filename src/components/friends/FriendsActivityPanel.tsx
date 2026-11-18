@@ -9,7 +9,6 @@ import { Spinner } from "@/components/ui/Spinner";
 import { HeadphonesIcon } from "@/components/ui/icons";
 import { listActiveFriends, type ActiveFriend } from "@/lib/friends/presence";
 import { inviteFriendToSession } from "@/lib/rooms/invites";
-import { cn } from "@/lib/utils";
 import { useListeningSessionStore } from "@/stores/listeningSession";
 
 const PRESENCE_REFRESH_MS = 60_000;
@@ -21,10 +20,11 @@ function friendName(entry: ActiveFriend): string {
 /** Side panel: accepted friends who started a track within the last 10 minutes. */
 export function FriendsActivityPanel({
   hideWhenEmpty = false,
-  className,
+  onEntriesChange,
 }: {
   hideWhenEmpty?: boolean;
-  className?: string;
+  /** Reports whether the panel currently has something to show. */
+  onEntriesChange?: (hasContent: boolean) => void;
 }) {
   const openSession = useListeningSessionStore((state) => state.open);
   const [entries, setEntries] = useState<ActiveFriend[]>([]);
@@ -63,6 +63,12 @@ export function FriendsActivityPanel({
     };
   }, []);
 
+  const hasContent = !loading && (entries.length > 0 || error !== null);
+
+  useEffect(() => {
+    onEntriesChange?.(hasContent);
+  }, [hasContent, onEntriesChange]);
+
   async function handleInvite(entry: ActiveFriend) {
     if (busyFriendId) return;
 
@@ -98,7 +104,7 @@ export function FriendsActivityPanel({
   }
 
   return (
-    <Card className={cn("space-y-4", className)}>
+    <Card className="space-y-4">
       <CardHeader>
         <CardTitle>يستمعون الآن</CardTitle>
         <CardDescription>

@@ -6,12 +6,14 @@ import { useEffect, useState, type ReactNode } from "react";
 import { BottomNav } from "./BottomNav";
 import { Header } from "./Header";
 import { SideNav } from "./SideNav";
+import { HomeFriendsColumn } from "@/components/friends/HomeFriendsColumn";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { PlayerEngine } from "@/components/player/PlayerEngine";
 import { ListeningPopup } from "@/components/rooms/ListeningPopup";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/lib/utils";
 
 const AUTH_ROUTES = ["/login", "/signup"];
 const PROTECTED_PREFIXES = ["/library", "/friends", "/rooms", "/account", "/playlists"];
@@ -31,6 +33,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
+  const isHome = pathname === "/";
+  const [signedIn, setSignedIn] = useState(false);
+  const [homeFriendsVisible, setHomeFriendsVisible] = useState(false);
   const [allowed, setAllowed] = useState(() => {
     if (!hasSupabaseEnv()) return true;
     return !isAuthRoute && !isProtectedPath(pathname);
@@ -50,6 +55,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       } = await supabase.auth.getUser();
 
       if (!active) return;
+
+      setSignedIn(Boolean(user));
 
       if (!user && isProtectedPath(pathname)) {
         setAllowed(false);
@@ -73,6 +80,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!active) return;
       const user = session?.user ?? null;
+
+      setSignedIn(Boolean(user));
 
       if (!user && isProtectedPath(pathname)) {
         setAllowed(false);
@@ -103,7 +112,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       <Header />
       <SideNav />
-      <div className="min-h-dvh pt-16 md:ps-60">
+      {isHome ? (
+        <HomeFriendsColumn enabled={signedIn} onVisibilityChange={setHomeFriendsVisible} />
+      ) : null}
+      <div
+        className={cn(
+          "min-h-dvh pt-16 md:ps-60",
+          isHome && signedIn && homeFriendsVisible && "xl:pe-80",
+        )}
+      >
         <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-48 md:pb-28">
           {allowed ? (
             children
