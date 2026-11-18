@@ -13,7 +13,6 @@ export interface Track {
   audioPath: string | null;
   durationSeconds: number | null;
   sourceType: TrackSource;
-  youtubeVideoId: string | null;
   description: string | null;
   credits: string | null;
   releaseDate: string | null;
@@ -50,7 +49,6 @@ export function mapTrackRow(row: TrackRow): Track {
     audioPath: row.audio_path,
     durationSeconds: row.duration_seconds,
     sourceType: row.source_type,
-    youtubeVideoId: row.youtube_video_id,
     description: row.description,
     credits: row.credits,
     releaseDate: row.release_date,

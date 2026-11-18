@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -8,10 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { RoomClient } from "@/components/rooms/RoomClient";
 import { RoomMembersPanel } from "@/components/rooms/RoomMembersPanel";
 import { RoomsClient } from "@/components/rooms/RoomsClient";
-import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
-import { HeadphonesIcon } from "@/components/ui/icons";
 
 function RoomsPageContent() {
   const searchParams = useSearchParams();
