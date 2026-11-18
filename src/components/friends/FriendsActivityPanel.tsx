@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { TrackCover } from "@/components/catalog/TrackCover";
@@ -8,6 +9,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/Ca
 import { Spinner } from "@/components/ui/Spinner";
 import { HeadphonesIcon } from "@/components/ui/icons";
 import { listActiveFriends, type ActiveFriend } from "@/lib/friends/presence";
+import { inviteFriendToSession } from "@/lib/rooms/invites";
 
 const PRESENCE_REFRESH_MS = 60_000;
 
@@ -20,6 +22,11 @@ export function FriendsActivityPanel() {
   const [entries, setEntries] = useState<ActiveFriend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [busyFriendId, setBusyFriendId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [invitedRoomId, setInvitedRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -49,14 +56,68 @@ export function FriendsActivityPanel() {
     };
   }, []);
 
+  async function handleInvite(entry: ActiveFriend) {
+    if (busyFriendId) return;
+
+    setBusyFriendId(entry.friendId);
+    setNotice(null);
+    setActionError(null);
+    setInvitedRoomId(null);
+
+    const result = await inviteFriendToSession(entry.friendId);
+
+    setBusyFriendId(null);
+
+    if (!result.ok) {
+      setActionError(result.error.message);
+      return;
+    }
+
+    const name = friendName(entry);
+
+    setInvitedRoomId(result.data.roomId);
+    setNotice(
+      result.data.alreadyPending
+        ? `لديك دعوة معلّقة إلى ${name} بالفعل.`
+        : `تم إرسال دعوة إلى ${name}. سينضم إلى الغرفة بعد موافقته.`,
+    );
+  }
+
   return (
     <Card className="space-y-4">
       <CardHeader>
         <CardTitle>يستمعون الآن</CardTitle>
         <CardDescription>
-          أصدقاؤك الذين شغّلوا أغنية خلال آخر عشر دقائق. الانضمام إلى غرفة يتطلب موافقة الصديق.
+          أصدقاؤك الذين شغّلوا أغنية خلال آخر عشر دقائق. إرسال الدعوة لا يضيفهم إلى
+          الغرفة قبل موافقتهم.
         </CardDescription>
       </CardHeader>
+
+      {notice ? (
+        <div
+          role="status"
+          className="bg-success/10 border-success/30 text-success space-y-2 rounded-xl border px-3 py-2 text-xs"
+        >
+          <p>{notice}</p>
+          {invitedRoomId ? (
+            <Link
+              href={`/rooms?id=${invitedRoomId}`}
+              className="text-accent hover:text-accent-hover text-xs font-bold underline transition-colors"
+            >
+              افتح الغرفة للاستماع ←
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <p
+          role="alert"
+          className="bg-danger/10 border-danger/30 text-danger rounded-xl border px-3 py-2 text-xs"
+        >
+          {actionError}
+        </p>
+      ) : null}
 
       {loading ? (
         <p className="text-muted flex items-center gap-2 text-xs">
@@ -96,8 +157,9 @@ export function FriendsActivityPanel() {
                 size="sm"
                 variant="secondary"
                 className="w-full"
-                disabled
-                title="بانتظار موافقة الصديق على الانضمام."
+                loading={busyFriendId === entry.friendId}
+                disabled={busyFriendId !== null && busyFriendId !== entry.friendId}
+                onClick={() => void handleInvite(entry)}
               >
                 <HeadphonesIcon className="size-4" />
                 استمع معه

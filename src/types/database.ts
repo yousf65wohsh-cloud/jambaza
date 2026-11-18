@@ -4,6 +4,7 @@ export type TrackSource = "upload" | "youtube";
 export type ProfileRole = "listener" | "artist" | "admin";
 export type FriendshipStatus = "pending" | "accepted";
 export type FriendshipDirection = "incoming" | "outgoing" | "accepted";
+export type RoomInviteStatus = "pending" | "accepted" | "declined";
 
 export interface Database {
   public: {
@@ -232,6 +233,31 @@ export interface Database {
         };
         Relationships: [];
       };
+      room_invites: {
+        Row: {
+          id: string;
+          room_id: string;
+          inviter_id: string;
+          invitee_id: string;
+          status: RoomInviteStatus;
+          created_at: string;
+          responded_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          inviter_id: string;
+          invitee_id: string;
+          status?: RoomInviteStatus;
+          created_at?: string;
+          responded_at?: string | null;
+        };
+        Update: {
+          status?: RoomInviteStatus;
+          responded_at?: string | null;
+        };
+        Relationships: [];
+      };
       user_presence: {
         Row: {
           user_id: string;
@@ -320,4 +346,5 @@ export type PlaylistTrackRow = Database["public"]["Tables"]["playlist_tracks"]["
 export type FriendshipRow = Database["public"]["Tables"]["friendships"]["Row"];
 export type ListeningRoomRow = Database["public"]["Tables"]["listening_rooms"]["Row"];
 export type RoomMemberRow = Database["public"]["Tables"]["room_members"]["Row"];
+export type RoomInviteRow = Database["public"]["Tables"]["room_invites"]["Row"];
 export type UserPresenceRow = Database["public"]["Tables"]["user_presence"]["Row"];

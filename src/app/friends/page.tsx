@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { FriendsActivityPanel } from "@/components/friends/FriendsActivityPanel";
 import { FriendsClient } from "@/components/friends/FriendsClient";
+import { ListeningInvitesPanel } from "@/components/friends/ListeningInvitesPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 export const metadata: Metadata = {
@@ -17,7 +18,8 @@ export default function FriendsPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
-        <aside aria-label="الأصدقاء الذين يستمعون الآن">
+        <aside aria-label="نشاط الأصدقاء ودعوات الاستماع" className="space-y-4">
+          <ListeningInvitesPanel />
           <FriendsActivityPanel />
         </aside>
 
