@@ -37,7 +37,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hasSupabaseEnv()) {
-      setAllowed(true);
       return;
     }
 

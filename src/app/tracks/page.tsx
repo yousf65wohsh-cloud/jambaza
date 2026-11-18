@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { AddToPlaylistMenu } from "@/components/catalog/AddToPlaylistMenu";
 import { FeedbackForm } from "@/components/catalog/FeedbackForm";
@@ -72,67 +72,75 @@ function TrackPageContent() {
   const [commentsError, setCommentsError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const load = useCallback(async () => {
-    if (!id) {
-      setTrack(null);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    setRatingsError(null);
-    setCommentsError(null);
-
-    const session = await hasCatalogSession();
-    setHasSession(session);
-
-    if (!session) {
-      setLoading(false);
-      return;
-    }
-
-    const [trackResult, ratingsResult, commentsResult, myRatingResult] = await Promise.all([
-      getTrack(id),
-      listTrackRatings(id),
-      listTrackComments(id),
-      getMyTrackRating(id),
-    ]);
-
-    if (!trackResult.ok) {
-      setError(trackResult.error.message);
-      setTrack(undefined);
-      setLoading(false);
-      return;
-    }
-
-    setTrack(trackResult.data);
-    if (ratingsResult.ok) {
-      setRatings(ratingsResult.data.map((r) => r.rating));
-    } else {
-      setRatingsError(ratingsResult.error.message);
-      setRatings([]);
-    }
-
-    if (commentsResult.ok) {
-      setComments(commentsResult.data);
-    } else {
-      setCommentsError(commentsResult.error.message);
-      setComments([]);
-    }
-
-    if (myRatingResult.ok) {
-      setMyRating(myRatingResult.data);
-    } else {
-      setMyRating(null);
-    }
-
-    setLoading(false);
-  }, [id]);
-
   useEffect(() => {
+    let active = true;
+
+    async function load() {
+      if (!id) {
+        setTrack(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      setRatingsError(null);
+      setCommentsError(null);
+
+      const session = await hasCatalogSession();
+      if (!active) return;
+      setHasSession(session);
+
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
+      const [trackResult, ratingsResult, commentsResult, myRatingResult] = await Promise.all([
+        getTrack(id),
+        listTrackRatings(id),
+        listTrackComments(id),
+        getMyTrackRating(id),
+      ]);
+      if (!active) return;
+
+      if (!trackResult.ok) {
+        setError(trackResult.error.message);
+        setTrack(undefined);
+        setLoading(false);
+        return;
+      }
+
+      setTrack(trackResult.data);
+      if (ratingsResult.ok) {
+        setRatings(ratingsResult.data.map((r) => r.rating));
+      } else {
+        setRatingsError(ratingsResult.error.message);
+        setRatings([]);
+      }
+
+      if (commentsResult.ok) {
+        setComments(commentsResult.data);
+      } else {
+        setCommentsError(commentsResult.error.message);
+        setComments([]);
+      }
+
+      if (myRatingResult.ok) {
+        setMyRating(myRatingResult.data);
+      } else {
+        setMyRating(null);
+      }
+
+      setLoading(false);
+    }
+
     void load();
-  }, [load, reloadKey]);
+
+    return () => {
+      active = false;
+    };
+  }, [id, reloadKey]);
 
   if (loading || hasSession === null) {
     return (
