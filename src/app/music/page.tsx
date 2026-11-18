@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { MusicIcon, NextIcon, PreviousIcon } from "@/components/ui/icons";
 import { hasCatalogSession, listAll } from "@/lib/catalog/data";
+import { usePlayerStore } from "@/stores/player";
 import type { Track } from "@/types/track";
 
 function parsePage(value: string | null): number {
@@ -23,6 +24,7 @@ function MusicPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = useMemo(() => parsePage(searchParams.get("page")), [searchParams]);
+  const setTrack = usePlayerStore((state) => state.setTrack);
 
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState<boolean | null>(null);
@@ -138,7 +140,11 @@ function MusicPageContent() {
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {tracks.map((track) => (
-              <TrackCard key={track.id} track={track} />
+              <TrackCard
+                key={track.id}
+                track={track}
+                onPlay={(selected) => setTrack(selected, tracks)}
+              />
             ))}
           </div>
 

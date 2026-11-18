@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { MusicIcon, StarIcon } from "@/components/ui/icons";
 import { hasCatalogSession, listLatest, listTopRated } from "@/lib/catalog/data";
 import { formatRatingCount } from "@/lib/catalog/format";
+import { usePlayerStore } from "@/stores/player";
 import type { RatedTrack, Track } from "@/types/track";
 
 function SectionError({ message }: { message: string }) {
@@ -25,6 +26,8 @@ function SectionError({ message }: { message: string }) {
 }
 
 export default function HomePage() {
+  const setTrack = usePlayerStore((state) => state.setTrack);
+
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
   const [latest, setLatest] = useState<Track[]>([]);
@@ -118,7 +121,11 @@ export default function HomePage() {
         ) : latest.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {latest.map((track) => (
-              <TrackCard key={track.id} track={track} />
+              <TrackCard
+                key={track.id}
+                track={track}
+                onPlay={(selected) => setTrack(selected, latest)}
+              />
             ))}
           </div>
         ) : (
@@ -146,6 +153,7 @@ export default function HomePage() {
               <TrackCard
                 key={track.id}
                 track={track}
+                onPlay={(selected) => setTrack(selected, topRated)}
                 meta={
                   <span className="flex items-center gap-1.5">
                     <StarIcon className="text-accent size-3.5" />

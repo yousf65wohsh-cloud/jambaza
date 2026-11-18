@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
-import { MusicIcon, StarIcon } from "@/components/ui/icons";
+import { MusicIcon, PlayIcon, StarIcon } from "@/components/ui/icons";
 import {
   getMyTrackRating,
   getTrack,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/catalog/data";
 import { formatFeedbackDate, formatRatingCount, formatReleaseDate } from "@/lib/catalog/format";
 import { averageRating } from "@/lib/catalog/rating";
+import { usePlayerStore } from "@/stores/player";
 import type { Track, TrackComment } from "@/types/track";
 
 const RATING_VALUES = [1, 2, 3, 4, 5] as const;
@@ -60,6 +61,7 @@ function TrackNotFound() {
 function TrackPageContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";
+  const setPlayerTrack = usePlayerStore((state) => state.setTrack);
 
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState<boolean | null>(null);
@@ -241,6 +243,15 @@ function TrackPageContent() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              className="gap-1.5"
+              disabled={!track.audioPath}
+              title={track.audioPath ? undefined : "لا يوجد ملف صوتي لهذه الأغنية."}
+              onClick={() => setPlayerTrack(track, [track])}
+            >
+              <PlayIcon className="size-4" />
+              تشغيل
+            </Button>
             <AddToPlaylistMenu trackId={track.id} />
           </div>
         </div>
