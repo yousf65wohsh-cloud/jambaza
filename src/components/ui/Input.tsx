@@ -17,7 +17,7 @@ export function Input({ label, error, hint, id, className, ...props }: InputProp
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={inputId} className="block text-sm font-medium">
+      <label htmlFor={inputId} className="text-text block text-sm font-semibold">
         {label}
       </label>
       <input
@@ -28,7 +28,7 @@ export function Input({ label, error, hint, id, className, ...props }: InputProp
         {...props}
       />
       {error ? (
-        <p id={`${inputId}-error`} className="text-danger text-xs">
+        <p id={`${inputId}-error`} className="text-danger text-xs font-medium">
           {error}
         </p>
       ) : hint ? (
