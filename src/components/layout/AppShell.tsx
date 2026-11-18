@@ -8,6 +8,7 @@ import { Header } from "./Header";
 import { SideNav } from "./SideNav";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { PlayerEngine } from "@/components/player/PlayerEngine";
+import { ListeningPopup } from "@/components/rooms/ListeningPopup";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
@@ -119,6 +120,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <PlayerEngine />
       <PlayerBar />
+      <ListeningPopup />
       <BottomNav />
     </>
   );

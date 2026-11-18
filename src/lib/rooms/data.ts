@@ -23,6 +23,7 @@ const PROFILE_FAILED_MESSAGE = "تعذّر تحميل ملفك الشخصي. ح�
 const INVITE_FAILED_MESSAGE = "تعذّر دعوة الصديق إلى الغرفة. حاول مرة أخرى.";
 const REMOVE_FAILED_MESSAGE = "تعذّر إزالة العضو من الغرفة. حاول مرة أخرى.";
 const LEAVE_FAILED_MESSAGE = "تعذّرت مغادرة الغرفة. حاول مرة أخرى.";
+const END_FAILED_MESSAGE = "تعذّر إنهاء جلسة الاستماع. حاول مرة أخرى.";
 export const HOST_LEAVE_BLOCKED_MESSAGE =
   "لا يمكن للمضيف المغادرة قبل إزالة الأعضاء الآخرين أو حذف الغرفة.";
 
@@ -401,5 +402,34 @@ export async function leaveRoom(roomId: string): Promise<ApiResponse<null>> {
     return apiOk(null);
   } catch (error) {
     return apiFail<null>(error, LEAVE_FAILED_MESSAGE);
+  }
+}
+
+/**
+ * Ends a shared listening session by deleting the room. Host-only; RLS
+ * (`listening_rooms_delete_host`) enforces the same rule in the database.
+ * Memberships and pending invites cascade with the room.
+ */
+export async function endRoom(roomId: string): Promise<ApiResponse<null>> {
+  try {
+    const { supabase, userId } = await getSupabaseAndUser();
+    const room = await fetchRoomHost(supabase, roomId);
+
+    if (room.host_id !== userId) {
+      throw new AppError("FORBIDDEN", "المضيف فقط يمكنه إنهاء الجلسة.");
+    }
+
+    const { error } = await supabase
+      .from("listening_rooms")
+      .delete()
+      .eq("id", roomId);
+
+    if (error) {
+      throw new AppError("INTERNAL", END_FAILED_MESSAGE, { cause: error });
+    }
+
+    return apiOk(null);
+  } catch (error) {
+    return apiFail<null>(error, END_FAILED_MESSAGE);
   }
 }
