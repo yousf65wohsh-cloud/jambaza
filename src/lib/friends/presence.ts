@@ -30,11 +30,24 @@ export interface NowListeningEntry {
   updatedAt: string;
 }
 
+/** A friend who is listening now, together with their public profile. */
+export interface ActiveFriend {
+  friendId: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  track: NowListeningTrack;
+  updatedAt: string;
+}
+
 /**
- * True when a presence timestamp is recent enough to display. Unparseable
- * timestamps are treated as stale.
+ * True when a presence timestamp is recent enough to display.
+ *
+ * Exactly ten minutes old still counts; anything older is stale. Future
+ * timestamps are treated as active because they only happen with clock skew
+ * between the browser and the database. Unparseable timestamps are stale.
  */
-export function isPresenceFresh(updatedAt: string, now: number = Date.now()): boolean {
+export function isActiveNow(updatedAt: string, now: number = Date.now()): boolean {
   const timestamp = Date.parse(updatedAt);
 
   if (!Number.isFinite(timestamp)) {
@@ -44,17 +57,43 @@ export function isPresenceFresh(updatedAt: string, now: number = Date.now()): bo
   return now - timestamp <= PRESENCE_TTL_MS;
 }
 
+function mapTrack(row: NowListeningRow): NowListeningTrack {
+  return {
+    id: row.track_id,
+    title: row.track_title,
+    artist: row.track_artist,
+    coverUrl: row.track_cover_url,
+  };
+}
+
 export function mapNowListeningRow(row: NowListeningRow): NowListeningEntry {
   return {
     friendId: row.friend_id,
-    track: {
-      id: row.track_id,
-      title: row.track_title,
-      artist: row.track_artist,
-      coverUrl: row.track_cover_url,
-    },
+    track: mapTrack(row),
     updatedAt: row.updated_at,
   };
+}
+
+export function mapActiveFriendRow(row: NowListeningRow): ActiveFriend {
+  return {
+    friendId: row.friend_id,
+    username: row.friend_username,
+    displayName: row.friend_display_name,
+    avatarUrl: row.friend_avatar_url,
+    track: mapTrack(row),
+    updatedAt: row.updated_at,
+  };
+}
+
+async function fetchNowListeningRows(): Promise<NowListeningRow[]> {
+  const { supabase } = await getSupabaseAndUser();
+  const { data, error } = await supabase.rpc("list_friends_now_listening", {});
+
+  if (error) {
+    throw new AppError("INTERNAL", PRESENCE_READ_FAILED, { cause: error });
+  }
+
+  return data ?? [];
 }
 
 /**
@@ -95,21 +134,31 @@ export async function listFriendsNowListening(): Promise<
   ApiResponse<NowListeningEntry[]>
 > {
   try {
-    const { supabase } = await getSupabaseAndUser();
-    const { data, error } = await supabase.rpc("list_friends_now_listening", {});
-
-    if (error) {
-      throw new AppError("INTERNAL", PRESENCE_READ_FAILED, { cause: error });
-    }
-
+    const rows = await fetchNowListeningRows();
     const now = Date.now();
 
     return apiOk(
-      (data ?? [])
-        .map(mapNowListeningRow)
-        .filter((entry) => isPresenceFresh(entry.updatedAt, now)),
+      rows.map(mapNowListeningRow).filter((entry) => isActiveNow(entry.updatedAt, now)),
     );
   } catch (error) {
     return apiFail<NowListeningEntry[]>(error, PRESENCE_READ_FAILED);
+  }
+}
+
+/**
+ * Same rows as {@link listFriendsNowListening}, enriched with the friend's
+ * public profile so the friends page can show an activity panel without extra
+ * queries.
+ */
+export async function listActiveFriends(): Promise<ApiResponse<ActiveFriend[]>> {
+  try {
+    const rows = await fetchNowListeningRows();
+    const now = Date.now();
+
+    return apiOk(
+      rows.map(mapActiveFriendRow).filter((entry) => isActiveNow(entry.updatedAt, now)),
+    );
+  } catch (error) {
+    return apiFail<ActiveFriend[]>(error, PRESENCE_READ_FAILED);
   }
 }

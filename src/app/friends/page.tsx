@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { FriendsActivityPanel } from "@/components/friends/FriendsActivityPanel";
 import { FriendsClient } from "@/components/friends/FriendsClient";
 import { PageHeader } from "@/components/layout/PageHeader";
 
@@ -12,10 +13,16 @@ export default function FriendsPage() {
     <main className="space-y-6">
       <PageHeader
         title="الأصدقاء"
-        description="أضف أصدقاءك برمز الصديق أو بالبحث، وأدر طلبات الصداقة."
+        description="تابع من يستمع الآن، وأضف أصدقاءك برمز الصديق أو بالبحث، وأدر طلبات الصداقة."
       />
 
-      <FriendsClient />
+      <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+        <aside aria-label="الأصدقاء الذين يستمعون الآن">
+          <FriendsActivityPanel />
+        </aside>
+
+        <FriendsClient />
+      </div>
     </main>
   );
 }
