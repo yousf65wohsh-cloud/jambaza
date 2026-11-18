@@ -88,7 +88,7 @@ export function PlayerBar() {
               disabled={!hasTrack}
               aria-label="السابق"
               title="السابق"
-              className="text-muted hover:text-foreground grid size-9 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              className="text-muted hover:text-foreground hidden size-9 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:grid"
             >
               <PreviousIcon className="size-5" />
             </button>
@@ -114,13 +114,13 @@ export function PlayerBar() {
               disabled={!hasTrack}
               aria-label="التالي"
               title="التالي"
-              className="text-muted hover:text-foreground grid size-9 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              className="text-muted hover:text-foreground hidden size-9 place-items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:grid"
             >
               <NextIcon className="size-5" />
             </button>
           </div>
 
-          <div className="flex w-full items-center gap-2">
+          <div className="hidden w-full items-center gap-2 md:flex">
             <span className="text-muted hidden w-9 text-end text-[11px] tabular-nums md:block">
               {formatTime(position)}
             </span>
@@ -134,7 +134,7 @@ export function PlayerBar() {
               onChange={(event) => seek(Number(event.target.value))}
               disabled={!canSeek}
               aria-label="موضع التشغيل"
-              className="accent-accent h-1.5 w-full min-w-24 cursor-pointer disabled:cursor-not-allowed md:w-40 lg:w-56"
+              className="accent-accent h-1.5 w-40 cursor-pointer disabled:cursor-not-allowed lg:w-56"
             />
 
             <span className="text-muted hidden w-9 text-[11px] tabular-nums md:block">
@@ -169,6 +169,19 @@ export function PlayerBar() {
           />
         </div>
       </div>
+
+      {/* Mobile: full-width progress across the top edge of the bar. */}
+      <input
+        type="range"
+        min={0}
+        max={progressMax}
+        step={0.1}
+        value={progressValue}
+        onChange={(event) => seek(Number(event.target.value))}
+        disabled={!canSeek}
+        aria-label="موضع التشغيل"
+        className="accent-accent absolute inset-x-0 top-0 h-1.5 w-full cursor-pointer disabled:cursor-not-allowed md:hidden"
+      />
     </div>
   );
 }
