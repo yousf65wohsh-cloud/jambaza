@@ -21,6 +21,43 @@ export function isHost(
   return room.hostId === currentUserId;
 }
 
+export type ListeningRole = "host" | "member" | "none";
+
+export interface ListeningRoleInput {
+  /** `listening_rooms.host_id`; missing until the room row is readable. */
+  hostId: string | null | undefined;
+  /** The signed-in viewer. */
+  viewerId: string | null | undefined;
+  /**
+   * Whether the viewer has a `room_members` row. RLS only exposes a room to its
+   * host or its members, so a loaded room row proves membership.
+   */
+  isMember: boolean;
+}
+
+/**
+ * The role the viewer plays in a listening session.
+ *
+ * The user who pressed «استمع معه» creates the room and owns `host_id`, so they
+ * are the host. The invited friend is added to `room_members` only after
+ * accepting, so they are a member and never the host. Anyone else has no role.
+ */
+export function listeningRole({
+  hostId,
+  viewerId,
+  isMember,
+}: ListeningRoleInput): ListeningRole {
+  if (!viewerId) {
+    return "none";
+  }
+
+  if (hostId && hostId === viewerId) {
+    return "host";
+  }
+
+  return isMember ? "member" : "none";
+}
+
 /** Only the host may invite accepted friends into the room. */
 export function canInvite(
   room: RoomHostRef | null | undefined,

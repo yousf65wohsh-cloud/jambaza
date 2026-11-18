@@ -1,3 +1,5 @@
+import type { ListeningRole } from "./membership";
+
 /** Text helpers for the floating shared-listening window. */
 
 /** "تستمع مع {name} الآن", or a neutral fallback when no name is known. */
@@ -7,15 +9,22 @@ export function listeningPopupTitle(peerName: string | null | undefined): string
   return name ? `تستمع مع ${name} الآن` : "غرفة استماع مشتركة";
 }
 
-/** The host sees "أنت المضيف"; members see who is hosting. */
-export function listeningRoleLabel(isHost: boolean, hostName: string | null | undefined): string {
-  if (isHost) {
+/** The host sees "أنت المضيف"; members see who is hosting; no role, no badge. */
+export function listeningRoleLabel(
+  role: ListeningRole,
+  hostName: string | null | undefined,
+): string | null {
+  if (role === "host") {
     return "أنت المضيف";
   }
 
-  const name = hostName?.trim();
+  if (role === "member") {
+    const name = hostName?.trim();
 
-  return name ? `المضيف: ${name}` : "المضيف";
+    return name ? `المضيف: ${name}` : "المضيف";
+  }
+
+  return null;
 }
 
 /** Short playback state shown in the popup. */

@@ -14,6 +14,7 @@ import {
   VolumeOffIcon,
 } from "@/components/ui/icons";
 import { endRoom } from "@/lib/rooms/data";
+import { listeningRole } from "@/lib/rooms/membership";
 import { listeningPlaybackLabel, listeningPopupTitle, listeningRoleLabel } from "@/lib/rooms/popup";
 import { useRoomSync } from "@/lib/rooms/useRoomSync";
 import { cn, formatTime } from "@/lib/utils";
@@ -50,7 +51,7 @@ function ListeningPopupWindow({ roomId, peerName }: { roomId: string; peerName: 
 
   const {
     room,
-    isHost,
+    userId,
     loading,
     error,
     isSyncing,
@@ -67,6 +68,17 @@ function ListeningPopupWindow({ roomId, peerName }: { roomId: string; peerName: 
     commitSeek,
     retryPlayback,
   } = useRoomSync(roomId, audioRef);
+
+  // The room row is only readable by its host or a member, so a loaded room is
+  // the membership proof. Until it loads the viewer has no role, which keeps the
+  // host from being labelled with the friend's name while the row is in flight.
+  const role = listeningRole({
+    hostId: room?.hostId,
+    viewerId: userId,
+    isMember: Boolean(room),
+  });
+  const isHost = role === "host";
+  const roleLabel = listeningRoleLabel(role, peerName);
 
   const knownDuration = duration && duration > 0 ? duration : (track?.durationSeconds ?? null);
   const progressMax = knownDuration ?? 1;
@@ -127,16 +139,18 @@ function ListeningPopupWindow({ roomId, peerName }: { roomId: string; peerName: 
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <span
-              className={cn(
-                "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
-                isHost
-                  ? "border-success/30 bg-success/10 text-success"
-                  : "border-border bg-surface-2 text-muted",
-              )}
-            >
-              {listeningRoleLabel(isHost, peerName)}
-            </span>
+            {roleLabel ? (
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                  isHost
+                    ? "border-success/30 bg-success/10 text-success"
+                    : "border-border bg-surface-2 text-muted",
+                )}
+              >
+                {roleLabel}
+              </span>
+            ) : null}
 
             <button
               type="button"

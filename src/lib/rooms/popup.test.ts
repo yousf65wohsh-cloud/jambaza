@@ -15,15 +15,19 @@ describe("listeningPopupTitle", () => {
 
 describe("listeningRoleLabel", () => {
   it("labels the host", () => {
-    expect(listeningRoleLabel(true, "ليلى")).toBe("أنت المضيف");
+    expect(listeningRoleLabel("host", "ليلى")).toBe("أنت المضيف");
   });
 
   it("names the host for members", () => {
-    expect(listeningRoleLabel(false, "ليلى")).toBe("المضيف: ليلى");
+    expect(listeningRoleLabel("member", "ليلى")).toBe("المضيف: ليلى");
   });
 
   it("falls back when the host name is missing", () => {
-    expect(listeningRoleLabel(false, null)).toBe("المضيف");
+    expect(listeningRoleLabel("member", null)).toBe("المضيف");
+  });
+
+  it("has no label for someone with no role", () => {
+    expect(listeningRoleLabel("none", "ليلى")).toBeNull();
   });
 });
 
