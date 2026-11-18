@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 import { HeadphonesIcon } from "../ui/icons";
-import { NavSearch } from "./NavSearch";
 import { isNavItemActive, NAV_ITEMS } from "./nav-items";
 
 export function SideNav() {
@@ -14,9 +13,6 @@ export function SideNav() {
 
   return (
     <aside className="border-border/70 bg-surface/40 fixed top-16 start-0 bottom-20 z-40 hidden w-60 border-e p-4 md:block">
-      <NavSearch className="mb-4" />
-
-      <p className="text-muted mb-3 px-3 text-xs font-bold tracking-wide">تنقّل</p>
       <ul className="space-y-1">
         {NAV_ITEMS.map((item) => {
           const active = isNavItemActive(pathname, item);
