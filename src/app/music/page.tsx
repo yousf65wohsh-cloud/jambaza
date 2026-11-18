@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { TrackCard } from "@/components/catalog/TrackCard";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
@@ -18,6 +17,18 @@ import type { Track } from "@/types/track";
 function parsePage(value: string | null): number {
   const parsed = Number.parseInt(value ?? "1", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function MusicHeader() {
+  return (
+    <header className="space-y-2">
+      <p className="text-accent text-sm font-bold">الكتالوج</p>
+      <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">الموسيقى</h1>
+      <p className="text-muted max-w-2xl text-sm leading-6">
+        كل الأغاني المنشورة في الكتالوج. اختر أغنية لعرض تفاصيلها وتقييمها والتعليق عليها.
+      </p>
+    </header>
+  );
 }
 
 function MusicPageContent() {
@@ -91,10 +102,7 @@ function MusicPageContent() {
   if (!hasSession) {
     return (
       <main className="space-y-6">
-        <PageHeader
-          title="الموسيقى"
-          description="كل الأغاني المنشورة في الكتالوج. اختر أغنية لعرض تفاصيلها وتقييمها والتعليق عليها."
-        />
+        <MusicHeader />
         <SignInPrompt />
       </main>
     );
@@ -105,10 +113,7 @@ function MusicPageContent() {
 
   return (
     <main className="space-y-6">
-      <PageHeader
-        title="الموسيقى"
-        description="كل الأغاني المنشورة في الكتالوج. اختر أغنية لعرض تفاصيلها وتقييمها والتعليق عليها."
-      />
+      <MusicHeader />
 
       {error ? (
         <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
@@ -138,7 +143,7 @@ function MusicPageContent() {
             ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {tracks.map((track) => (
               <TrackCard
                 key={track.id}

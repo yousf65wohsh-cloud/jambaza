@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { TrackCard } from "@/components/catalog/TrackCard";
+import { TrackCover } from "@/components/catalog/TrackCover";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
-import { MusicIcon, StarIcon } from "@/components/ui/icons";
+import { MusicIcon, PlayIcon, StarIcon } from "@/components/ui/icons";
 import { hasCatalogSession, listLatest, listTopRated } from "@/lib/catalog/data";
 import { formatRatingCount } from "@/lib/catalog/format";
 import { usePlayerStore } from "@/stores/player";
@@ -22,6 +24,60 @@ function SectionError({ message }: { message: string }) {
     >
       {message}
     </p>
+  );
+}
+
+function LatestHero({ track, onPlay }: { track: Track; onPlay: (track: Track) => void }) {
+  return (
+    <section
+      aria-labelledby="latest-hero-heading"
+      className="card shadow-raised overflow-hidden"
+    >
+      <div className="grid sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
+        <div className="overflow-hidden">
+          <TrackCover track={track} />
+        </div>
+
+        <div className="flex flex-col justify-center gap-4 p-5 sm:p-7">
+          <p className="text-accent text-xs font-bold tracking-wide">أحدث إصدار</p>
+
+          <div className="space-y-1.5">
+            <h2
+              id="latest-hero-heading"
+              dir="auto"
+              className="text-2xl font-extrabold tracking-tight sm:text-3xl"
+            >
+              {track.title}
+            </h2>
+            <p dir="auto" className="text-muted text-base">
+              {track.artist || "فنان غير معروف"}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              disabled={!track.audioPath}
+              title={track.audioPath ? undefined : "لا يوجد ملف صوتي لهذه الأغنية."}
+              onClick={() => onPlay(track)}
+            >
+              <PlayIcon className="size-4" />
+              استمع الآن
+            </Button>
+            <Link href={`/tracks?id=${track.id}`}>
+              <Button variant="secondary">التفاصيل</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Rail({ children }: { children: ReactNode }) {
+  return (
+    <div className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2">
+      {children}
+    </div>
   );
 }
 
@@ -103,6 +159,10 @@ export default function HomePage() {
         description="أحدث الأغاني المنشورة وأعلى التقييمات — كلها في مكان واحد."
       />
 
+      {latest.length > 0 ? (
+        <LatestHero track={latest[0]} onPlay={(selected) => setTrack(selected, latest)} />
+      ) : null}
+
       <section className="space-y-4" aria-labelledby="latest-heading">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="latest-heading" className="text-xl font-extrabold tracking-tight">
@@ -119,15 +179,16 @@ export default function HomePage() {
         {latestError ? (
           <SectionError message={latestError} />
         ) : latest.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Rail>
             {latest.map((track) => (
-              <TrackCard
-                key={track.id}
-                track={track}
-                onPlay={(selected) => setTrack(selected, latest)}
-              />
+              <div key={track.id} className="w-36 shrink-0 snap-start sm:w-44">
+                <TrackCard
+                  track={track}
+                  onPlay={(selected) => setTrack(selected, latest)}
+                />
+              </div>
             ))}
-          </div>
+          </Rail>
         ) : (
           <EmptyState
             icon={<MusicIcon className="size-6" />}
@@ -148,24 +209,25 @@ export default function HomePage() {
         {topRatedError ? (
           <SectionError message={topRatedError} />
         ) : topRated.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Rail>
             {topRated.map((track) => (
-              <TrackCard
-                key={track.id}
-                track={track}
-                onPlay={(selected) => setTrack(selected, topRated)}
-                meta={
-                  <span className="flex items-center gap-1.5">
-                    <StarIcon className="text-accent size-3.5" />
-                    <span className="text-foreground font-bold tabular-nums">
-                      {track.averageRating.toFixed(1)}
+              <div key={track.id} className="w-36 shrink-0 snap-start sm:w-44">
+                <TrackCard
+                  track={track}
+                  onPlay={(selected) => setTrack(selected, topRated)}
+                  meta={
+                    <span className="flex items-center gap-1.5">
+                      <StarIcon className="text-accent size-3.5" />
+                      <span className="text-foreground font-bold tabular-nums">
+                        {track.averageRating.toFixed(1)}
+                      </span>
+                      <span>{formatRatingCount(track.ratingCount)}</span>
                     </span>
-                    <span>{formatRatingCount(track.ratingCount)}</span>
-                  </span>
-                }
-              />
+                  }
+                />
+              </div>
             ))}
-          </div>
+          </Rail>
         ) : (
           <EmptyState
             icon={<StarIcon className="size-6" />}
