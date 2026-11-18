@@ -218,7 +218,7 @@ export function PlaylistsClient() {
         <ul className="space-y-2">
           {playlists.map((playlist) => (
             <li key={playlist.id} className="card flex flex-wrap items-center gap-3 p-4">
-              <Link href={`/playlists/${playlist.id}`} className="min-w-0 flex-1 space-y-0.5">
+              <Link href={`/playlists?id=${playlist.id}`} className="min-w-0 flex-1 space-y-0.5">
                 <span className="hover:text-accent block truncate font-bold transition-colors">
                   {playlist.name}
                 </span>

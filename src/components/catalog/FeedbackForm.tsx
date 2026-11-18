@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 
 import { submitTrackFeedback } from "@/lib/catalog/actions";
@@ -16,11 +15,12 @@ const RATING_VALUES = [1, 2, 3, 4, 5] as const;
 export function FeedbackForm({
   trackId,
   initialRating,
+  onSuccess,
 }: {
   trackId: string;
   initialRating: number | null;
+  onSuccess?: () => void;
 }) {
-  const router = useRouter();
   const [rating, setRating] = useState<number | null>(initialRating);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export function FeedbackForm({
 
       setSuccess(comment.trim() ? "تم حفظ تقييمك وتعليقك." : "تم حفظ تقييمك.");
       setComment("");
-      router.refresh();
+      onSuccess?.();
     });
   }
 

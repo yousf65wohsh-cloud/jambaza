@@ -1,34 +1,90 @@
-import type { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { TrackCard } from "@/components/catalog/TrackCard";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
 import { MusicIcon, NextIcon, PreviousIcon } from "@/components/ui/icons";
 import { hasCatalogSession, listAll } from "@/lib/catalog/data";
+import type { Track } from "@/types/track";
 
-export const metadata: Metadata = {
-  title: "الموسيقى",
-};
-
-function parsePage(value: string | string[] | undefined): number {
-  const raw = Array.isArray(value) ? value[0] : value;
-  const parsed = Number.parseInt(raw ?? "1", 10);
-
+function parsePage(value: string | null): number {
+  const parsed = Number.parseInt(value ?? "1", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
-export default async function MusicPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string | string[] }>;
-}) {
-  const params = await searchParams;
-  const page = parsePage(params.page);
-  const hasSession = await hasCatalogSession();
+function MusicPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const page = useMemo(() => parsePage(searchParams.get("page")), [searchParams]);
+
+  const [loading, setLoading] = useState(true);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      const session = await hasCatalogSession();
+      if (!active) return;
+      setHasSession(session);
+
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
+      const result = await listAll(page);
+      if (!active) return;
+
+      if (!result.ok) {
+        setError(result.error.message);
+        setTracks([]);
+        setTotal(0);
+        setHasMore(false);
+        setLoading(false);
+        return;
+      }
+
+      const totalPages = Math.max(1, Math.ceil(result.data.total / result.data.pageSize));
+      if (result.data.total > 0 && page > totalPages) {
+        router.replace(`/music?page=${totalPages}`);
+        return;
+      }
+
+      setTracks(result.data.tracks);
+      setTotal(result.data.total);
+      setHasMore(result.data.hasMore);
+      setLoading(false);
+    }
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, [page, router]);
+
+  if (loading || hasSession === null) {
+    return (
+      <main className="flex items-center justify-center py-20">
+        <Spinner className="size-6" />
+      </main>
+    );
+  }
 
   if (!hasSession) {
     return (
@@ -42,19 +98,8 @@ export default async function MusicPage({
     );
   }
 
-  const result = await listAll(page);
-
-  if (result.ok) {
-    const totalPages = Math.max(1, Math.ceil(result.data.total / result.data.pageSize));
-
-    if (result.data.total > 0 && page > totalPages) {
-      redirect(`/music?page=${totalPages}`);
-    }
-  }
-
-  const totalPages = result.ok
-    ? Math.max(1, Math.ceil(result.data.total / result.data.pageSize))
-    : 1;
+  const pageSize = 24;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <main className="space-y-6">
@@ -63,10 +108,10 @@ export default async function MusicPage({
         description="كل الأغاني المنشورة في الكتالوج. اختر أغنية لعرض تفاصيلها وتقييمها والتعليق عليها."
       />
 
-      {!result.ok ? (
+      {error ? (
         <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
           <p role="alert" className="text-danger">
-            {result.error.message}
+            {error}
           </p>
           <Link href="/music">
             <Button variant="secondary" size="sm">
@@ -74,7 +119,7 @@ export default async function MusicPage({
             </Button>
           </Link>
         </div>
-      ) : result.data.tracks.length === 0 ? (
+      ) : tracks.length === 0 ? (
         <EmptyState
           icon={<MusicIcon className="size-6" />}
           title="لا توجد أغاني منشورة"
@@ -83,7 +128,7 @@ export default async function MusicPage({
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-muted text-sm">{result.data.total} أغنية منشورة</p>
+            <p className="text-muted text-sm">{total} أغنية منشورة</p>
             {totalPages > 1 ? (
               <p className="text-muted text-sm tabular-nums">
                 الصفحة {page} من {totalPages}
@@ -92,7 +137,7 @@ export default async function MusicPage({
           </div>
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {result.data.tracks.map((track) => (
+            {tracks.map((track) => (
               <TrackCard key={track.id} track={track} />
             ))}
           </div>
@@ -120,7 +165,7 @@ export default async function MusicPage({
                 {page} / {totalPages}
               </span>
 
-              {result.data.hasMore ? (
+              {hasMore ? (
                 <Link href={`/music?page=${page + 1}`}>
                   <Button variant="secondary" size="sm" className="gap-1.5">
                     التالي
@@ -138,5 +183,19 @@ export default async function MusicPage({
         </>
       )}
     </main>
+  );
+}
+
+export default function MusicPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex items-center justify-center py-20">
+          <Spinner className="size-6" />
+        </main>
+      }
+    >
+      <MusicPageContent />
+    </Suspense>
   );
 }

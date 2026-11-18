@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { apiFail, apiOk } from "@/lib/api/result";
 import { AppError } from "@/lib/errors";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import type { ApiResponse } from "@/types/api";
 import type { Database } from "@/types/database";
 import {
@@ -43,7 +43,7 @@ export interface CatalogPage {
  */
 export async function hasCatalogSession(): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
       error,
@@ -58,7 +58,7 @@ export async function hasCatalogSession(): Promise<boolean> {
 /** Newest published tracks, newest first. */
 export async function listLatest(limit: number = LATEST_LIMIT): Promise<ApiResponse<Track[]>> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
     const { data, error } = await supabase
       .from("tracks")
@@ -82,7 +82,7 @@ export async function listTopRated(
   limit: number = TOP_RATED_LIMIT,
 ): Promise<ApiResponse<RatedTrack[]>> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
     const { data: trackRows, error } = await supabase
       .from("tracks")
@@ -131,7 +131,7 @@ export async function listTopRated(
 /** One page of published tracks, newest first. */
 export async function listAll(page: number = 1): Promise<ApiResponse<CatalogPage>> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const safePage = Math.max(Math.trunc(page) || 1, 1);
     const offset = (safePage - 1) * CATALOG_PAGE_SIZE;
     const { data, error, count } = await supabase
@@ -167,7 +167,7 @@ export async function getTrack(trackId: string): Promise<ApiResponse<Track | nul
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("tracks")
       .select("*")
@@ -192,7 +192,7 @@ export async function listTrackRatings(trackId: string): Promise<ApiResponse<Tra
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("track_ratings")
       .select("*")
@@ -216,7 +216,7 @@ export async function getMyTrackRating(trackId: string): Promise<ApiResponse<num
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
       error: authError,
@@ -250,7 +250,7 @@ export async function listTrackComments(trackId: string): Promise<ApiResponse<Tr
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("track_comments")
       .select("*")

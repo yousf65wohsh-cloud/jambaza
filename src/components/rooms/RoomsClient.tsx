@@ -28,7 +28,7 @@ function RoomCard({ room }: { room: RoomSummary }) {
 
   return (
     <Link
-      href={`/rooms/${room.id}`}
+      href={`/rooms?id=${room.id}`}
       className="card hover:border-accent/40 block p-4 transition-colors"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -115,7 +115,7 @@ export function RoomsClient() {
       return;
     }
 
-    router.push(`/rooms/${result.data.id}`);
+    router.push(`/rooms?id=${result.data.id}`);
   }
 
   const isEmpty = rooms !== null && rooms.length === 0;

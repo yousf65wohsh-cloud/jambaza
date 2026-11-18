@@ -1,17 +1,17 @@
-import type { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { TrackCard } from "@/components/catalog/TrackCard";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
 import { MusicIcon, StarIcon } from "@/components/ui/icons";
 import { hasCatalogSession, listLatest, listTopRated } from "@/lib/catalog/data";
 import { formatRatingCount } from "@/lib/catalog/format";
-
-export const metadata: Metadata = {
-  title: "الرئيسية",
-};
+import type { RatedTrack, Track } from "@/types/track";
 
 function SectionError({ message }: { message: string }) {
   return (
@@ -24,8 +24,60 @@ function SectionError({ message }: { message: string }) {
   );
 }
 
-export default async function HomePage() {
-  const hasSession = await hasCatalogSession();
+export default function HomePage() {
+  const [loading, setLoading] = useState(true);
+  const [hasSession, setHasSession] = useState(false);
+  const [latest, setLatest] = useState<Track[]>([]);
+  const [topRated, setTopRated] = useState<RatedTrack[]>([]);
+  const [latestError, setLatestError] = useState<string | null>(null);
+  const [topRatedError, setTopRatedError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function load() {
+      setLoading(true);
+      const session = await hasCatalogSession();
+      if (!active) return;
+      setHasSession(session);
+
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
+      const [latestResult, topRatedResult] = await Promise.all([listLatest(10), listTopRated(5)]);
+      if (!active) return;
+
+      if (latestResult.ok) {
+        setLatest(latestResult.data);
+      } else {
+        setLatestError(latestResult.error.message);
+      }
+
+      if (topRatedResult.ok) {
+        setTopRated(topRatedResult.data);
+      } else {
+        setTopRatedError(topRatedResult.error.message);
+      }
+
+      setLoading(false);
+    }
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <main className="flex items-center justify-center py-20">
+        <Spinner className="size-6" />
+      </main>
+    );
+  }
 
   if (!hasSession) {
     return (
@@ -39,8 +91,6 @@ export default async function HomePage() {
       </main>
     );
   }
-
-  const [latestResult, topRatedResult] = await Promise.all([listLatest(10), listTopRated(5)]);
 
   return (
     <main className="space-y-10">
@@ -63,11 +113,11 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {!latestResult.ok ? (
-          <SectionError message={latestResult.error.message} />
-        ) : latestResult.data.length > 0 ? (
+        {latestError ? (
+          <SectionError message={latestError} />
+        ) : latest.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {latestResult.data.map((track) => (
+            {latest.map((track) => (
               <TrackCard key={track.id} track={track} />
             ))}
           </div>
@@ -88,11 +138,11 @@ export default async function HomePage() {
           <span className="text-muted text-sm">أفضل خمس أغاني حسب تقييمات المستمعين</span>
         </div>
 
-        {!topRatedResult.ok ? (
-          <SectionError message={topRatedResult.error.message} />
-        ) : topRatedResult.data.length > 0 ? (
+        {topRatedError ? (
+          <SectionError message={topRatedError} />
+        ) : topRated.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {topRatedResult.data.map((track) => (
+            {topRated.map((track) => (
               <TrackCard
                 key={track.id}
                 track={track}

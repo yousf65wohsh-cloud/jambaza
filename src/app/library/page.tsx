@@ -1,32 +1,21 @@
-import type { Metadata } from "next";
+"use client";
+
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { LibraryClient } from "@/components/library/LibraryClient";
 import { PlaylistsClient } from "@/components/library/PlaylistsClient";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Spinner } from "@/components/ui/Spinner";
 
-export const metadata: Metadata = {
-  title: "مكتبتي",
-};
-
-export default async function LibraryPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ uploaded?: string | string[]; upload?: string | string[] }>;
-}) {
-  const params = await searchParams;
-  const uploaded = Array.isArray(params.uploaded)
-    ? params.uploaded.includes("1")
-    : params.uploaded === "1";
-  const uploadDenied = Array.isArray(params.upload)
-    ? params.upload.includes("denied")
-    : params.upload === "denied";
+function LibraryPageContent() {
+  const searchParams = useSearchParams();
+  const uploaded = searchParams.get("uploaded") === "1";
+  const uploadDenied = searchParams.get("upload") === "denied";
 
   return (
     <main className="space-y-10">
-      <PageHeader
-        title="مكتبتي"
-        description="قوائمك الشخصية وأغانيك المرفوعة."
-      />
+      <PageHeader title="مكتبتي" description="قوائمك الشخصية وأغانيك المرفوعة." />
 
       <PlaylistsClient />
 
@@ -34,5 +23,19 @@ export default async function LibraryPage({
         <LibraryClient showSuccess={uploaded} uploadDenied={uploadDenied} />
       </div>
     </main>
+  );
+}
+
+export default function LibraryPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex items-center justify-center py-20">
+          <Spinner className="size-6" />
+        </main>
+      }
+    >
+      <LibraryPageContent />
+    </Suspense>
   );
 }

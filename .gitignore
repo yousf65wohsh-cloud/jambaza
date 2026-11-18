@@ -10,6 +10,9 @@ build/
 next-env.d.ts
 *.tsbuildinfo
 
+# tauri
+src-tauri/target/
+
 # production
 /public/sw.js
 /public/swe-worker-*.js

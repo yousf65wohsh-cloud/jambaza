@@ -1,6 +1,8 @@
-import type { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 
 import { AddToPlaylistMenu } from "@/components/catalog/AddToPlaylistMenu";
 import { FeedbackForm } from "@/components/catalog/FeedbackForm";
@@ -9,7 +11,8 @@ import { TrackCover } from "@/components/catalog/TrackCover";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { StarIcon } from "@/components/ui/icons";
+import { Spinner } from "@/components/ui/Spinner";
+import { MusicIcon, StarIcon } from "@/components/ui/icons";
 import {
   getMyTrackRating,
   getTrack,
@@ -19,6 +22,7 @@ import {
 } from "@/lib/catalog/data";
 import { formatFeedbackDate, formatRatingCount, formatReleaseDate } from "@/lib/catalog/format";
 import { averageRating } from "@/lib/catalog/rating";
+import type { Track, TrackComment } from "@/types/track";
 
 const RATING_VALUES = [1, 2, 3, 4, 5] as const;
 
@@ -34,24 +38,109 @@ function formatCommentCount(count: number): string {
   return `${count} تعليقات`;
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const result = await getTrack(id);
-
-  if (!result.ok || !result.data) {
-    return { title: "الأغنية غير موجودة" };
-  }
-
-  return { title: result.data.title };
+function TrackNotFound() {
+  return (
+    <main className="space-y-6">
+      <EmptyState
+        icon={<MusicIcon className="size-6" />}
+        title="الأغنية غير موجودة"
+        description="قد تكون الأغنية غير منشورة أو تم حذفها من الكتالوج."
+        action={
+          <Link href="/music">
+            <Button variant="secondary" size="sm">
+              العودة إلى الموسيقى
+            </Button>
+          </Link>
+        }
+      />
+    </main>
+  );
 }
 
-export default async function TrackPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const hasSession = await hasCatalogSession();
+function TrackPageContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id") ?? "";
+
+  const [loading, setLoading] = useState(true);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
+  const [track, setTrack] = useState<Track | null | undefined>(undefined);
+  const [ratings, setRatings] = useState<number[]>([]);
+  const [myRating, setMyRating] = useState<number | null>(null);
+  const [comments, setComments] = useState<TrackComment[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [ratingsError, setRatingsError] = useState<string | null>(null);
+  const [commentsError, setCommentsError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const load = useCallback(async () => {
+    if (!id) {
+      setTrack(null);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setRatingsError(null);
+    setCommentsError(null);
+
+    const session = await hasCatalogSession();
+    setHasSession(session);
+
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+
+    const [trackResult, ratingsResult, commentsResult, myRatingResult] = await Promise.all([
+      getTrack(id),
+      listTrackRatings(id),
+      listTrackComments(id),
+      getMyTrackRating(id),
+    ]);
+
+    if (!trackResult.ok) {
+      setError(trackResult.error.message);
+      setTrack(undefined);
+      setLoading(false);
+      return;
+    }
+
+    setTrack(trackResult.data);
+    if (ratingsResult.ok) {
+      setRatings(ratingsResult.data.map((r) => r.rating));
+    } else {
+      setRatingsError(ratingsResult.error.message);
+      setRatings([]);
+    }
+
+    if (commentsResult.ok) {
+      setComments(commentsResult.data);
+    } else {
+      setCommentsError(commentsResult.error.message);
+      setComments([]);
+    }
+
+    if (myRatingResult.ok) {
+      setMyRating(myRatingResult.data);
+    } else {
+      setMyRating(null);
+    }
+
+    setLoading(false);
+  }, [id]);
+
+  useEffect(() => {
+    void load();
+  }, [load, reloadKey]);
+
+  if (loading || hasSession === null) {
+    return (
+      <main className="flex items-center justify-center py-20">
+        <Spinner className="size-6" />
+      </main>
+    );
+  }
 
   if (!hasSession) {
     return (
@@ -64,14 +153,7 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
     );
   }
 
-  const [trackResult, ratingsResult, commentsResult, myRatingResult] = await Promise.all([
-    getTrack(id),
-    listTrackRatings(id),
-    listTrackComments(id),
-    getMyTrackRating(id),
-  ]);
-
-  if (!trackResult.ok) {
+  if (error) {
     return (
       <main className="space-y-6">
         <Link href="/music" className="text-muted hover:text-foreground text-xs font-medium">
@@ -79,29 +161,22 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
         </Link>
         <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
           <p role="alert" className="text-danger">
-            {trackResult.error.message}
+            {error}
           </p>
-          <Link href={`/tracks/${id}`}>
-            <Button variant="secondary" size="sm">
-              إعادة المحاولة
-            </Button>
-          </Link>
+          <Button variant="secondary" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+            إعادة المحاولة
+          </Button>
         </div>
       </main>
     );
   }
 
-  const track = trackResult.data;
-
   if (!track) {
-    notFound();
+    return <TrackNotFound />;
   }
 
-  const ratings = ratingsResult.ok ? ratingsResult.data : [];
-  const average = averageRating(ratings.map((rating) => rating.rating));
+  const average = averageRating(ratings);
   const ratingCount = ratings.length;
-  const myRating = myRatingResult.ok ? myRatingResult.data : null;
-  const comments = commentsResult.ok ? commentsResult.data : [];
 
   return (
     <main className="space-y-8">
@@ -129,9 +204,9 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className="space-y-2">
-            {!ratingsResult.ok ? (
+            {ratingsError ? (
               <p role="alert" className="text-danger text-sm">
-                {ratingsResult.error.message}
+                {ratingsError}
               </p>
             ) : ratingCount > 0 ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -192,7 +267,12 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
         </Card>
       </div>
 
-      <FeedbackForm key={track.id} trackId={track.id} initialRating={myRating} />
+      <FeedbackForm
+        key={`${track.id}-${myRating ?? "none"}`}
+        trackId={track.id}
+        initialRating={myRating}
+        onSuccess={() => setReloadKey((k) => k + 1)}
+      />
 
       <section className="space-y-4" aria-labelledby="comments-heading">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -202,12 +282,12 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
           <span className="text-muted text-sm">{formatCommentCount(comments.length)}</span>
         </div>
 
-        {!commentsResult.ok ? (
+        {commentsError ? (
           <p
             role="alert"
             className="bg-danger/10 border-danger/30 text-danger rounded-xl border px-4 py-3 text-sm"
           >
-            {commentsResult.error.message}
+            {commentsError}
           </p>
         ) : comments.length > 0 ? (
           <ul className="space-y-3">
@@ -231,5 +311,19 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
         )}
       </section>
     </main>
+  );
+}
+
+export default function TrackPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex items-center justify-center py-20">
+          <Spinner className="size-6" />
+        </main>
+      }
+    >
+      <TrackPageContent />
+    </Suspense>
   );
 }

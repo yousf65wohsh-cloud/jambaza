@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import type { ProfileRole } from "@/types/database";
 
 /**
@@ -6,7 +6,7 @@ import type { ProfileRole } from "@/types/database";
  * Returns `null` when there is no session or the profile cannot be read.
  */
 export async function getCurrentUserRole(): Promise<ProfileRole | null> {
-  const supabase = await createClient();
+  const supabase = createClient();
   const {
     data: { user },
     error: userError,

@@ -1,10 +1,8 @@
-"use server";
-
-import { revalidatePath } from "next/cache";
+"use client";
 
 import { apiFail, apiOk } from "@/lib/api/result";
 import { AppError } from "@/lib/errors";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import type { ApiResponse } from "@/types/api";
 
 import { getTrack } from "./data";
@@ -48,7 +46,7 @@ export async function submitTrackFeedback(
       throw new AppError("NOT_FOUND", "لم يتم العثور على الأغنية.");
     }
 
-    const supabase = await createClient();
+    const supabase = createClient();
     const {
       data: { user },
       error: authError,
@@ -88,10 +86,6 @@ export async function submitTrackFeedback(
         });
       }
     }
-
-    revalidatePath("/");
-    revalidatePath("/music");
-    revalidatePath(`/tracks/${trackId}`);
 
     return apiOk(null);
   } catch (error) {

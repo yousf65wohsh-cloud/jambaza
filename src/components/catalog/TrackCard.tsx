@@ -8,7 +8,7 @@ import { TrackCover } from "./TrackCover";
 export function TrackCard({ track, meta }: { track: Track; meta?: ReactNode }) {
   return (
     <Link
-      href={`/tracks/${track.id}`}
+      href={`/tracks?id=${track.id}`}
       className="card group hover:border-accent/50 overflow-hidden transition-colors"
     >
       <div className="overflow-hidden">

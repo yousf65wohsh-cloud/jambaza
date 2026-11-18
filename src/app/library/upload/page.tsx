@@ -1,21 +1,48 @@
-import type { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Spinner } from "@/components/ui/Spinner";
 import { UploadForm } from "@/components/upload/UploadForm";
 import { getCurrentUserRole } from "@/lib/tracks/roles";
 import { canUpload } from "@/lib/upload/access";
 
-export const metadata: Metadata = {
-  title: "رفع أغنية",
-};
+export default function UploadPage() {
+  const router = useRouter();
+  const [allowed, setAllowed] = useState<boolean | null>(null);
 
-export default async function UploadPage() {
-  const role = await getCurrentUserRole();
+  useEffect(() => {
+    let active = true;
 
-  if (!canUpload(role)) {
-    redirect("/library?upload=denied");
+    async function check() {
+      const role = await getCurrentUserRole();
+      if (!active) return;
+
+      if (!canUpload(role)) {
+        setAllowed(false);
+        router.replace("/library?upload=denied");
+        return;
+      }
+
+      setAllowed(true);
+    }
+
+    void check();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  if (allowed !== true) {
+    return (
+      <main className="flex items-center justify-center py-20">
+        <Spinner className="size-6" />
+      </main>
+    );
   }
 
   return (
