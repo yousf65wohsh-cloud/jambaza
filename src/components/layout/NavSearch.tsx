@@ -7,8 +7,8 @@ import { SearchIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 
 /**
- * The single search entry point, mounted in the desktop side navigation and the
- * mobile bottom navigation. Enter or the search icon opens `/search?q=...`.
+ * The search entry point in the desktop side navigation and the mobile bottom
+ * navigation. Enter or the search icon opens the home page search results.
  */
 export function NavSearch({ className }: { className?: string }) {
   const router = useRouter();
@@ -24,7 +24,7 @@ export function NavSearch({ className }: { className?: string }) {
       return;
     }
 
-    router.push(`/search?q=${encodeURIComponent(normalized)}`);
+    router.push(`/?q=${encodeURIComponent(normalized)}`);
   }
 
   return (

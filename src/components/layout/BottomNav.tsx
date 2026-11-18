@@ -18,7 +18,7 @@ export function BottomNav() {
         <NavSearch />
       </div>
 
-      <ul className="grid h-14 grid-cols-5">
+      <ul className="grid h-14 grid-cols-4">
         {NAV_ITEMS.map((item) => {
           const active = isNavItemActive(pathname, item);
           const Icon = item.icon;

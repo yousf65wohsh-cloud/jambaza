@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  HomeIcon,
-  LibraryIcon,
-  MusicIcon,
-  SearchIcon,
-  UsersIcon,
-} from "@/components/ui/icons";
+import { HomeIcon, LibraryIcon, MusicIcon, UsersIcon } from "@/components/ui/icons";
 
 export interface NavItem {
   href: string;
@@ -17,7 +11,6 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "الرئيسية", icon: HomeIcon },
   { href: "/music", label: "الموسيقى", icon: MusicIcon },
-  { href: "/search", label: "البحث", icon: SearchIcon },
   { href: "/library", label: "مكتبتي", icon: LibraryIcon },
   { href: "/friends", label: "الأصدقاء", icon: UsersIcon },
 ];
