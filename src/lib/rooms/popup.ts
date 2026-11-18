@@ -4,14 +4,11 @@
 export function listeningPopupTitle(peerName: string | null | undefined): string {
   const name = peerName?.trim();
 
-  return name ? `تستمع مع ${name} الآن` : "تستمع مع صديقك الآن";
+  return name ? `تستمع مع ${name} الآن` : "غرفة استماع مشتركة";
 }
 
 /** The host sees "أنت المضيف"; members see who is hosting. */
-export function listeningRoleLabel(
-  isHost: boolean,
-  hostName: string | null | undefined,
-): string {
+export function listeningRoleLabel(isHost: boolean, hostName: string | null | undefined): string {
   if (isHost) {
     return "أنت المضيف";
   }

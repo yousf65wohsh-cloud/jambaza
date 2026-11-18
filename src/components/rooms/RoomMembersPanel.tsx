@@ -17,6 +17,7 @@ import {
   type RoomSummary,
 } from "@/lib/rooms/data";
 import { canHostLeave, canInvite, isHost } from "@/lib/rooms/membership";
+import { useListeningSessionStore } from "@/stores/listeningSession";
 
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -207,6 +208,13 @@ export function RoomMembersPanel({ roomId }: { roomId: string }) {
     if (!result.ok) {
       setActionError(result.error.message);
       return;
+    }
+
+    // Leaving the room ends this listener's session locally; the floating
+    // window must not keep playing a room the user is no longer part of.
+    const session = useListeningSessionStore.getState();
+    if (session.roomId === roomId) {
+      session.close();
     }
 
     router.push("/rooms");

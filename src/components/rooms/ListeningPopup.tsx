@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 
 import { TrackCover } from "@/components/catalog/TrackCover";
 import { Button } from "@/components/ui/Button";
@@ -15,43 +14,31 @@ import {
   VolumeOffIcon,
 } from "@/components/ui/icons";
 import { endRoom } from "@/lib/rooms/data";
-import {
-  listeningPlaybackLabel,
-  listeningPopupTitle,
-  listeningRoleLabel,
-} from "@/lib/rooms/popup";
+import { listeningPlaybackLabel, listeningPopupTitle, listeningRoleLabel } from "@/lib/rooms/popup";
 import { useRoomSync } from "@/lib/rooms/useRoomSync";
-import { cn } from "@/lib/utils";
+import { cn, formatTime } from "@/lib/utils";
 import { useListeningSessionStore } from "@/stores/listeningSession";
 import { usePlayerStore } from "@/stores/player";
 
 import { RoomTrackPicker } from "./RoomTrackPicker";
 
 /**
- * Floating shared-listening window. Mounted once in the app shell so it
- * survives client-side navigation; the friends page opens it by room id.
+ * Floating shared-listening window and the only owner of room playback.
+ *
+ * It is mounted once in the app shell so it survives client-side navigation;
+ * the friends page and the room page open it by room id. Because playback lives
+ * here and not in a page, moving between pages never stops the session.
  */
 export function ListeningPopup() {
   const roomId = useListeningSessionStore((state) => state.roomId);
   const peerName = useListeningSessionStore((state) => state.peerName);
-  const pathname = usePathname();
 
   if (!roomId) return null;
-
-  // The standalone room page owns playback there; rendering both would play the
-  // same audio twice.
-  if (pathname === "/rooms" || pathname.startsWith("/rooms/")) return null;
 
   return <ListeningPopupWindow key={roomId} roomId={roomId} peerName={peerName} />;
 }
 
-function ListeningPopupWindow({
-  roomId,
-  peerName,
-}: {
-  roomId: string;
-  peerName: string | null;
-}) {
+function ListeningPopupWindow({ roomId, peerName }: { roomId: string; peerName: string | null }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const close = useListeningSessionStore((state) => state.close);
   const volume = usePlayerStore((state) => state.volume);
@@ -70,12 +57,20 @@ function ListeningPopupWindow({
     notice,
     track,
     isPlaying,
+    position,
+    duration,
     needsGesture,
     togglePlay,
     pause: pauseRoom,
     selectTrack,
+    previewSeek,
+    commitSeek,
     retryPlayback,
   } = useRoomSync(roomId, audioRef);
+
+  const knownDuration = duration && duration > 0 ? duration : (track?.durationSeconds ?? null);
+  const progressMax = knownDuration ?? 1;
+  const progressValue = Math.min(position, progressMax);
 
   // Room playback is separate from the global player. Stop the global queue so
   // the two audio elements never play over each other.
@@ -187,8 +182,7 @@ function ListeningPopupWindow({
                     {track?.title ?? "لم يُختر مقطع بعد"}
                   </p>
                   <p dir="auto" className="text-muted truncate text-xs">
-                    {track?.artist ??
-                      (isHost ? "اختر مقطعاً للبدء." : "بانتظار اختيار المضيف…")}
+                    {track?.artist ?? (isHost ? "اختر مقطعاً للبدء." : "بانتظار اختيار المضيف…")}
                   </p>
                 </div>
 
@@ -201,13 +195,31 @@ function ListeningPopupWindow({
                   )}
                 >
                   <span
-                    className={cn(
-                      "size-1.5 rounded-full",
-                      isPlaying ? "bg-success" : "bg-muted",
-                    )}
+                    className={cn("size-1.5 rounded-full", isPlaying ? "bg-success" : "bg-muted")}
                   />
                   {listeningPlaybackLabel(isPlaying)}
                 </span>
+              </div>
+
+              <div className="space-y-1">
+                <input
+                  type="range"
+                  min={0}
+                  max={progressMax}
+                  step={0.1}
+                  value={progressValue}
+                  onChange={(event) => previewSeek(Number(event.target.value))}
+                  onPointerUp={(event) => void commitSeek(Number(event.currentTarget.value))}
+                  onPointerCancel={(event) => void commitSeek(Number(event.currentTarget.value))}
+                  onKeyUp={(event) => void commitSeek(Number(event.currentTarget.value))}
+                  disabled={!isHost || !track || !knownDuration}
+                  aria-label="موضع تشغيل الغرفة"
+                  className="accent-accent h-1.5 w-full cursor-pointer disabled:cursor-not-allowed"
+                />
+                <div className="text-muted flex items-center justify-between text-[10px] tabular-nums">
+                  <span>{formatTime(position)}</span>
+                  <span>{knownDuration ? formatTime(knownDuration) : "--:--"}</span>
+                </div>
               </div>
 
               {isHost ? (
@@ -228,9 +240,7 @@ function ListeningPopupWindow({
                       )}
                     </button>
 
-                    <p className="text-muted text-[11px] leading-4">
-                      أنت تتحكم بالتشغيل والمقطع.
-                    </p>
+                    <p className="text-muted text-[11px] leading-4">أنت تتحكم بالتشغيل والمقطع.</p>
                   </div>
 
                   {room ? (

@@ -95,18 +95,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
   }, [isAuthRoute, pathname, router]);
 
-  if (!allowed) {
-    if (isAuthRoute) {
-      return <div className="min-h-dvh" />;
-    }
-
-    return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <Spinner className="size-6" />
-      </div>
-    );
-  }
-
   if (isAuthRoute) {
     return <div className="min-h-dvh">{children}</div>;
   }
@@ -116,8 +104,22 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Header />
       <SideNav />
       <div className="min-h-dvh pt-16 md:ps-60">
-        <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-48 md:pb-28">{children}</div>
+        <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-48 md:pb-28">
+          {allowed ? (
+            children
+          ) : (
+            <div className="flex min-h-[60dvh] items-center justify-center">
+              <Spinner className="size-6" />
+            </div>
+          )}
+        </div>
       </div>
+      {/*
+        Media layer: mounted for every non-auth route and never inside a
+        route/auth conditional, so navigating between pages (or the route guard
+        re-checking the session) cannot unmount the audio engine or the
+        floating listening window.
+      */}
       <PlayerEngine />
       <PlayerBar />
       <ListeningPopup />

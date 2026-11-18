@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  listeningPlaybackLabel,
-  listeningPopupTitle,
-  listeningRoleLabel,
-} from "./popup";
+import { listeningPlaybackLabel, listeningPopupTitle, listeningRoleLabel } from "./popup";
 
 describe("listeningPopupTitle", () => {
   it("names the other participant", () => {
@@ -12,8 +8,8 @@ describe("listeningPopupTitle", () => {
   });
 
   it("falls back when the name is missing or blank", () => {
-    expect(listeningPopupTitle(null)).toBe("تستمع مع صديقك الآن");
-    expect(listeningPopupTitle("   ")).toBe("تستمع مع صديقك الآن");
+    expect(listeningPopupTitle(null)).toBe("غرفة استماع مشتركة");
+    expect(listeningPopupTitle("   ")).toBe("غرفة استماع مشتركة");
   });
 });
 
