@@ -34,6 +34,19 @@ export function formatFeedbackDate(value: string): string {
   return feedbackDateFormatter.format(date);
 }
 
+/** Formats a track duration as m:ss; unknown durations use a neutral placeholder. */
+export function formatDuration(seconds: number | null): string {
+  if (seconds === null || !Number.isFinite(seconds) || seconds < 0) {
+    return "--:--";
+  }
+
+  const whole = Math.floor(seconds);
+  const minutes = Math.floor(whole / 60);
+  const remainder = whole % 60;
+
+  return `${minutes}:${String(remainder).padStart(2, "0")}`;
+}
+
 /** Arabic-aware plural label for the number of track ratings. */
 export function formatRatingCount(count: number): string {
   if (count <= 0) {

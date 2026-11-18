@@ -5,7 +5,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { CategoryChips, type MusicCategory } from "@/components/catalog/CategoryChips";
-import { TrackCard } from "@/components/catalog/TrackCard";
+import { TrackRow } from "@/components/catalog/TrackRow";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
 import { MusicSearch } from "@/components/search/MusicSearch";
 import { Button } from "@/components/ui/Button";
@@ -63,6 +63,7 @@ function MusicPageContent() {
   const [searchResults, setSearchResults] = useState<Track[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -165,6 +166,26 @@ function MusicPageContent() {
   const sourceTracks = query !== null ? searchResults : tracks;
   const visibleTracks = filterByCategory(sourceTracks, category);
 
+  function handleSelect(track: Track) {
+    setSelectedId(track.id);
+  }
+
+  function renderTrackList(items: Track[], label: string) {
+    return (
+      <ul aria-label={label} className="space-y-1">
+        {items.map((track) => (
+          <TrackRow
+            key={track.id}
+            track={track}
+            selected={selectedId === track.id}
+            onSelect={handleSelect}
+            onPlay={(selected) => setTrack(selected, items)}
+          />
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <main className="space-y-6">
       <MusicHeader />
@@ -194,15 +215,7 @@ function MusicPageContent() {
         ) : (
           <>
             <p className="text-muted text-sm">{visibleTracks.length} نتيجة</p>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {visibleTracks.map((track) => (
-                <TrackCard
-                  key={track.id}
-                  track={track}
-                  onPlay={(selected) => setTrack(selected, visibleTracks)}
-                />
-              ))}
-            </div>
+            {renderTrackList(visibleTracks, "نتائج البحث")}
           </>
         )
       ) : error ? (
@@ -233,15 +246,7 @@ function MusicPageContent() {
             ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {visibleTracks.map((track) => (
-              <TrackCard
-                key={track.id}
-                track={track}
-                onPlay={(selected) => setTrack(selected, visibleTracks)}
-              />
-            ))}
-          </div>
+          {renderTrackList(visibleTracks, "أغاني الكتالوج")}
 
           {totalPages > 1 ? (
             <nav
