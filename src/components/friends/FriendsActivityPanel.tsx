@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { HeadphonesIcon } from "@/components/ui/icons";
 import { listActiveFriends, type ActiveFriend } from "@/lib/friends/presence";
 import { inviteFriendToSession } from "@/lib/rooms/invites";
+import { cn } from "@/lib/utils";
 import { useListeningSessionStore } from "@/stores/listeningSession";
 
 const PRESENCE_REFRESH_MS = 60_000;
@@ -18,7 +19,13 @@ function friendName(entry: ActiveFriend): string {
 }
 
 /** Side panel: accepted friends who started a track within the last 10 minutes. */
-export function FriendsActivityPanel() {
+export function FriendsActivityPanel({
+  hideWhenEmpty = false,
+  className,
+}: {
+  hideWhenEmpty?: boolean;
+  className?: string;
+}) {
   const openSession = useListeningSessionStore((state) => state.open);
   const [entries, setEntries] = useState<ActiveFriend[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,8 +89,16 @@ export function FriendsActivityPanel() {
     );
   }
 
+  /**
+   * Home-page mode: stay out of the layout until there is something to show.
+   * A real query failure still renders so the listener knows the list is stale.
+   */
+  if (hideWhenEmpty && (loading || (!error && entries.length === 0))) {
+    return null;
+  }
+
   return (
-    <Card className="space-y-4">
+    <Card className={cn("space-y-4", className)}>
       <CardHeader>
         <CardTitle>يستمعون الآن</CardTitle>
         <CardDescription>
