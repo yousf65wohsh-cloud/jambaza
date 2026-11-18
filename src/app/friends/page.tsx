@@ -14,7 +14,7 @@ export default function FriendsPage() {
     <main className="space-y-6">
       <PageHeader
         title="الأصدقاء"
-        description="تابع من يستمع الآن، وأضف أصدقاءك برمز الصديق أو بالبحث، وأدر طلبات الصداقة."
+        description="تابع من يستمع الآن، وأضف أصدقاءك برمز الصديق أو بالبحث في شريط التنقل، وأدر طلبات الصداقة."
       />
 
       <div className="grid gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
