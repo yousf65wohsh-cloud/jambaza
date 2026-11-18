@@ -1,21 +1,56 @@
 @import "tailwindcss";
 
 @theme {
+  /* Surfaces and text */
   --color-background: #0b0b0f;
   --color-surface: #14141b;
   --color-surface-2: #1c1c26;
+  --color-surface-raised: #20202b;
   --color-border: #2a2a36;
+  --color-text: #f6f3ef;
   --color-foreground: #f6f3ef;
   --color-muted: #9d9daf;
+
+  /* Accents */
   --color-accent: #ff7a45;
   --color-accent-hover: #ff8d5f;
   --color-accent-foreground: #1c0c05;
+  --color-accent-secondary: #5eead4;
   --color-danger: #ff6b6b;
   --color-success: #4ade80;
 
   --font-sans: var(--font-tajawal), "Tajawal", ui-sans-serif, system-ui, sans-serif;
 
+  /* Radii */
   --radius-card: 1rem;
+  --radius-control: 0.75rem;
+  --radius-panel: 1.25rem;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 40px -24px rgb(0 0 0 / 0.8);
+  --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.35), 0 24px 60px -24px rgb(0 0 0 / 0.85);
+  --shadow-glow: 0 0 0 1px rgb(255 122 69 / 0.24), 0 20px 45px -22px rgb(255 122 69 / 0.4);
+
+  /* Spacing scale */
+  --spacing-gutter: 1rem;
+  --spacing-section: 1.5rem;
+  --spacing-page: 2rem;
+
+  /* Motion */
+  --animate-rise: rise 200ms ease-out;
+  --animate-rise-slow: rise 320ms ease-out;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer base {
@@ -29,7 +64,7 @@
 
   body {
     background-color: var(--color-background);
-    color: var(--color-foreground);
+    color: var(--color-text);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
@@ -49,18 +84,25 @@
     background-color: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-card);
+    animation: var(--animate-rise);
+  }
+
+  /* Fade-and-rise entrance for lists and page sections. */
+  .rise {
+    animation: var(--animate-rise);
   }
 
   .field {
     width: 100%;
-    border-radius: 0.75rem;
+    border-radius: var(--radius-control);
     border: 1px solid var(--color-border);
     background-color: var(--color-surface-2);
     padding: 0.65rem 0.9rem;
-    color: var(--color-foreground);
+    color: var(--color-text);
     transition:
       border-color 150ms ease,
-      box-shadow 150ms ease;
+      box-shadow 150ms ease,
+      background-color 150ms ease;
   }
 
   .field::placeholder {
@@ -71,6 +113,13 @@
     outline: none;
     border-color: var(--color-accent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .rise {
+    animation: none;
   }
 }
 
