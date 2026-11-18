@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -12,6 +11,7 @@ import {
   respondToInvite,
   type IncomingInvite,
 } from "@/lib/rooms/invites";
+import { useListeningSessionStore } from "@/stores/listeningSession";
 
 const INVITES_REFRESH_MS = 60_000;
 
@@ -21,7 +21,7 @@ function hostName(invite: IncomingInvite): string {
 
 /** Pending listening-room invitations addressed to the signed-in user. */
 export function ListeningInvitesPanel() {
-  const router = useRouter();
+  const openSession = useListeningSessionStore((state) => state.open);
   const [invites, setInvites] = useState<IncomingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -71,12 +71,11 @@ export function ListeningInvitesPanel() {
       return;
     }
 
-    if (accept && result.data) {
-      router.push(`/rooms?id=${result.data.roomId}`);
-      return;
-    }
-
     setInvites((current) => current.filter((item) => item.id !== invite.id));
+
+    if (accept && result.data) {
+      openSession({ roomId: result.data.roomId, peerName: hostName(invite) });
+    }
   }
 
   return (

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { TrackCover } from "@/components/catalog/TrackCover";
@@ -10,6 +9,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { HeadphonesIcon } from "@/components/ui/icons";
 import { listActiveFriends, type ActiveFriend } from "@/lib/friends/presence";
 import { inviteFriendToSession } from "@/lib/rooms/invites";
+import { useListeningSessionStore } from "@/stores/listeningSession";
 
 const PRESENCE_REFRESH_MS = 60_000;
 
@@ -19,6 +19,7 @@ function friendName(entry: ActiveFriend): string {
 
 /** Side panel: accepted friends who started a track within the last 10 minutes. */
 export function FriendsActivityPanel() {
+  const openSession = useListeningSessionStore((state) => state.open);
   const [entries, setEntries] = useState<ActiveFriend[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,6 @@ export function FriendsActivityPanel() {
   const [busyFriendId, setBusyFriendId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [invitedRoomId, setInvitedRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -62,7 +62,6 @@ export function FriendsActivityPanel() {
     setBusyFriendId(entry.friendId);
     setNotice(null);
     setActionError(null);
-    setInvitedRoomId(null);
 
     const result = await inviteFriendToSession(entry.friendId);
 
@@ -75,11 +74,11 @@ export function FriendsActivityPanel() {
 
     const name = friendName(entry);
 
-    setInvitedRoomId(result.data.roomId);
+    openSession({ roomId: result.data.roomId, peerName: name });
     setNotice(
       result.data.alreadyPending
-        ? `لديك دعوة معلّقة إلى ${name} بالفعل.`
-        : `تم إرسال دعوة إلى ${name}. سينضم إلى الغرفة بعد موافقته.`,
+        ? `لديك دعوة معلّقة إلى ${name} بالفعل، وفُتحت نافذة الاستماع.`
+        : `تم إرسال دعوة إلى ${name} وفُتحت نافذة الاستماع. سينضم بعد موافقته.`,
     );
   }
 
@@ -94,20 +93,12 @@ export function FriendsActivityPanel() {
       </CardHeader>
 
       {notice ? (
-        <div
+        <p
           role="status"
-          className="bg-success/10 border-success/30 text-success space-y-2 rounded-xl border px-3 py-2 text-xs"
+          className="bg-success/10 border-success/30 text-success rounded-xl border px-3 py-2 text-xs"
         >
-          <p>{notice}</p>
-          {invitedRoomId ? (
-            <Link
-              href={`/rooms?id=${invitedRoomId}`}
-              className="text-accent hover:text-accent-hover text-xs font-bold underline transition-colors"
-            >
-              افتح الغرفة للاستماع ←
-            </Link>
-          ) : null}
-        </div>
+          {notice}
+        </p>
       ) : null}
 
       {actionError ? (
