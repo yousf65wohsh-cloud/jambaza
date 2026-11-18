@@ -1,18 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { TrackCard } from "@/components/catalog/TrackCard";
 import { TrackCover } from "@/components/catalog/TrackCover";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { HomeSearch } from "@/components/search/HomeSearch";
+import { HomeSearchResults } from "@/components/search/HomeSearchResults";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { MusicIcon, PlayIcon, StarIcon } from "@/components/ui/icons";
 import { hasCatalogSession, listLatest, listTopRated } from "@/lib/catalog/data";
 import { formatRatingCount } from "@/lib/catalog/format";
+import { normalizeQuery } from "@/lib/search/query";
 import { usePlayerStore } from "@/stores/player";
 import type { RatedTrack, Track } from "@/types/track";
 
@@ -81,9 +85,10 @@ function Rail({ children }: { children: ReactNode }) {
   );
 }
 
-export default function HomePage() {
+function HomeContent({ urlQuery }: { urlQuery: string | null }) {
   const setTrack = usePlayerStore((state) => state.setTrack);
 
+  const [query, setQuery] = useState<string | null>(urlQuery);
   const [loading, setLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
   const [latest, setLatest] = useState<Track[]>([]);
@@ -138,112 +143,135 @@ export default function HomePage() {
     );
   }
 
-  if (!hasSession) {
-    return (
-      <main className="space-y-6">
-        <PageHeader
-          eyebrow="أهلاً بك في جمبزة"
-          title="استمع مع أصدقائك"
-          description="أحدث الأغاني المنشورة وأعلى التقييمات — كلها في مكان واحد."
-        />
-        <SignInPrompt />
-      </main>
-    );
-  }
-
   return (
-    <main className="space-y-10">
+    <main className="space-y-8">
       <PageHeader
         eyebrow="أهلاً بك في جمبزة"
         title="استمع مع أصدقائك"
         description="أحدث الأغاني المنشورة وأعلى التقييمات — كلها في مكان واحد."
       />
 
-      {latest.length > 0 ? (
-        <LatestHero track={latest[0]} onPlay={(selected) => setTrack(selected, latest)} />
-      ) : null}
+      <HomeSearch initialQuery={urlQuery ?? ""} onQueryChange={setQuery} />
 
-      <section className="space-y-4" aria-labelledby="latest-heading">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="latest-heading" className="text-xl font-extrabold tracking-tight">
-            أحدث الإصدارات
-          </h2>
-          <Link
-            href="/music"
-            className="text-accent hover:text-accent-hover text-sm font-bold transition-colors"
-          >
-            عرض كل الموسيقى ←
-          </Link>
-        </div>
+      {!hasSession ? (
+        <SignInPrompt />
+      ) : query !== null ? (
+        <HomeSearchResults query={query} />
+      ) : (
+        <div className="space-y-10">
+          {latest.length > 0 ? (
+            <LatestHero track={latest[0]} onPlay={(selected) => setTrack(selected, latest)} />
+          ) : null}
 
-        {latestError ? (
-          <SectionError message={latestError} />
-        ) : latest.length > 0 ? (
-          <Rail>
-            {latest.map((track) => (
-              <div key={track.id} className="w-36 shrink-0 snap-start sm:w-44">
-                <TrackCard
-                  track={track}
-                  onPlay={(selected) => setTrack(selected, latest)}
-                />
-              </div>
-            ))}
-          </Rail>
-        ) : (
-          <EmptyState
-            icon={<MusicIcon className="size-6" />}
-            title="لا توجد إصدارات منشورة بعد"
-            description="ستظهر الأغاني هنا بمجرد نشرها في الكتالوج العام."
-          />
-        )}
-      </section>
-
-      <section className="space-y-4" aria-labelledby="top-rated-heading">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 id="top-rated-heading" className="text-xl font-extrabold tracking-tight">
-            الأعلى تقييماً
-          </h2>
-          <span className="text-muted text-sm">أفضل خمس أغاني حسب تقييمات المستمعين</span>
-        </div>
-
-        {topRatedError ? (
-          <SectionError message={topRatedError} />
-        ) : topRated.length > 0 ? (
-          <Rail>
-            {topRated.map((track) => (
-              <div key={track.id} className="w-36 shrink-0 snap-start sm:w-44">
-                <TrackCard
-                  track={track}
-                  onPlay={(selected) => setTrack(selected, topRated)}
-                  meta={
-                    <span className="flex items-center gap-1.5">
-                      <StarIcon className="text-accent size-3.5" />
-                      <span className="text-foreground font-bold tabular-nums">
-                        {track.averageRating.toFixed(1)}
-                      </span>
-                      <span>{formatRatingCount(track.ratingCount)}</span>
-                    </span>
-                  }
-                />
-              </div>
-            ))}
-          </Rail>
-        ) : (
-          <EmptyState
-            icon={<StarIcon className="size-6" />}
-            title="لا توجد تقييمات بعد"
-            description="قيّم الأغاني المنشورة ليظهر أعلاها تقييماً هنا."
-            action={
+          <section className="space-y-4" aria-labelledby="latest-heading">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="latest-heading" className="text-xl font-extrabold tracking-tight">
+                أحدث الإصدارات
+              </h2>
               <Link
                 href="/music"
                 className="text-accent hover:text-accent-hover text-sm font-bold transition-colors"
               >
-                تصفّح الموسيقى ←
+                عرض كل الموسيقى ←
               </Link>
-            }
-          />
-        )}
-      </section>
+            </div>
+
+            {latestError ? (
+              <SectionError message={latestError} />
+            ) : latest.length > 0 ? (
+              <Rail>
+                {latest.map((track) => (
+                  <div key={track.id} className="w-36 shrink-0 snap-start sm:w-44">
+                    <TrackCard
+                      track={track}
+                      onPlay={(selected) => setTrack(selected, latest)}
+                    />
+                  </div>
+                ))}
+              </Rail>
+            ) : (
+              <EmptyState
+                icon={<MusicIcon className="size-6" />}
+                title="لا توجد إصدارات منشورة بعد"
+                description="ستظهر الأغاني هنا بمجرد نشرها في الكتالوج العام."
+              />
+            )}
+          </section>
+
+          <section className="space-y-4" aria-labelledby="top-rated-heading">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 id="top-rated-heading" className="text-xl font-extrabold tracking-tight">
+                الأعلى تقييماً
+              </h2>
+              <span className="text-muted text-sm">أفضل خمس أغاني حسب تقييمات المستمعين</span>
+            </div>
+
+            {topRatedError ? (
+              <SectionError message={topRatedError} />
+            ) : topRated.length > 0 ? (
+              <Rail>
+                {topRated.map((track) => (
+                  <div key={track.id} className="w-36 shrink-0 snap-start sm:w-44">
+                    <TrackCard
+                      track={track}
+                      onPlay={(selected) => setTrack(selected, topRated)}
+                      meta={
+                        <span className="flex items-center gap-1.5">
+                          <StarIcon className="text-accent size-3.5" />
+                          <span className="text-foreground font-bold tabular-nums">
+                            {track.averageRating.toFixed(1)}
+                          </span>
+                          <span>{formatRatingCount(track.ratingCount)}</span>
+                        </span>
+                      }
+                    />
+                  </div>
+                ))}
+              </Rail>
+            ) : (
+              <EmptyState
+                icon={<StarIcon className="size-6" />}
+                title="لا توجد تقييمات بعد"
+                description="قيّم الأغاني المنشورة ليظهر أعلاها تقييماً هنا."
+                action={
+                  <Link
+                    href="/music"
+                    className="text-accent hover:text-accent-hover text-sm font-bold transition-colors"
+                  >
+                    تصفّح الموسيقى ←
+                  </Link>
+                }
+              />
+            )}
+          </section>
+        </div>
+      )}
     </main>
+  );
+}
+
+function HomePageContent() {
+  const searchParams = useSearchParams();
+  const urlQuery = useMemo(
+    () => normalizeQuery(searchParams.get("q") ?? ""),
+    [searchParams],
+  );
+
+  // Remounting on a new URL query keeps the input and results in sync without
+  // copying URL state into component state inside an effect.
+  return <HomeContent key={urlQuery ?? ""} urlQuery={urlQuery} />;
+}
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex items-center justify-center py-20">
+          <Spinner className="size-6" />
+        </main>
+      }
+    >
+      <HomePageContent />
+    </Suspense>
   );
 }

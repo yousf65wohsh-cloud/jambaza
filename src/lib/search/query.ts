@@ -1,4 +1,16 @@
 /**
+ * Trims a free-text search query and treats blank input as "no query".
+ *
+ * Returns `null` for an empty or whitespace-only string so callers can tell
+ * "nothing typed" apart from an actual search.
+ */
+export function normalizeQuery(input: string): string | null {
+  const trimmed = input.trim();
+
+  return trimmed.length === 0 ? null : trimmed;
+}
+
+/**
  * Pure query normalization for the catalog search.
  *
  * PostgREST `or` filters separate conditions with commas and group them with
