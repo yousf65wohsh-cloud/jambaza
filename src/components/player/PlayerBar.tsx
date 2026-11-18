@@ -52,7 +52,7 @@ export function PlayerBar() {
   const progressValue = Math.min(position, progressMax);
 
   return (
-    <div className="border-border/70 bg-surface/95 fixed inset-x-0 bottom-16 z-40 border-t backdrop-blur-xl md:bottom-0">
+    <div className="border-border/70 bg-surface/95 fixed inset-x-0 bottom-[6.5rem] z-40 border-t backdrop-blur-xl md:bottom-0">
       <div className="mx-auto flex h-20 max-w-6xl items-center gap-3 px-3 sm:px-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <Cover

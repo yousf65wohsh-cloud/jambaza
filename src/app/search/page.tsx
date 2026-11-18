@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
-import { PageHeader } from "@/components/layout/PageHeader";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { SearchIcon } from "@/components/ui/icons";
+import { SearchResults } from "@/components/search/SearchResults";
+import { Spinner } from "@/components/ui/Spinner";
 
 export const metadata: Metadata = {
   title: "البحث",
@@ -10,17 +10,14 @@ export const metadata: Metadata = {
 
 export default function SearchPage() {
   return (
-    <main className="space-y-6">
-      <PageHeader
-        title="البحث"
-        description="ابحث عن أغنية، فنان، أو صديق — البحث الكامل قادم في المرحلة التالية."
-      />
-
-      <EmptyState
-        icon={<SearchIcon className="size-6" />}
-        title="ابحث عن شيء تحبه"
-        description="لم نُفعّل البحث بعد. ستجد هنا نتائج الأغاني والفنانين والأصدقاء قريباً."
-      />
-    </main>
+    <Suspense
+      fallback={
+        <main className="flex items-center justify-center py-20">
+          <Spinner className="size-6" />
+        </main>
+      }
+    >
+      <SearchResults />
+    </Suspense>
   );
 }

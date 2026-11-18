@@ -130,7 +130,7 @@ function ListeningPopupWindow({ roomId, peerName }: { roomId: string; peerName: 
         role="dialog"
         aria-label="نافذة الاستماع المشترك"
         dir="rtl"
-        className="border-border/80 bg-surface/95 fixed bottom-40 left-4 z-50 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl md:bottom-24"
+        className="border-border/80 bg-surface/95 fixed bottom-52 left-4 z-50 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl md:bottom-24"
       >
         <header className="border-border/70 bg-surface-2/60 flex items-center justify-between gap-2 border-b px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { apiFail, apiOk } from "@/lib/api/result";
 import { AppError } from "@/lib/errors";
+import { toCatalogSearchPattern } from "@/lib/search/query";
 import { createClient } from "@/lib/supabase/client";
 import type { ApiResponse } from "@/types/api";
 import type { Database } from "@/types/database";
@@ -22,8 +23,10 @@ export const CATALOG_PAGE_SIZE = 24;
 
 const LATEST_LIMIT = 10;
 const TOP_RATED_LIMIT = 5;
+const SEARCH_LIMIT = 20;
 
 const CATALOG_LOAD_FAILED = "تعذّر تحميل الكتالوج. حاول مرة أخرى.";
+const SEARCH_FAILED = "تعذّر البحث في الكتالوج. حاول مرة أخرى.";
 const TRACK_LOAD_FAILED = "تعذّر تحميل الأغنية. حاول مرة أخرى.";
 const RATINGS_LOAD_FAILED = "تعذّر تحميل التقييمات. حاول مرة أخرى.";
 const COMMENTS_LOAD_FAILED = "تعذّر تحميل التعليقات. حاول مرة أخرى.";
@@ -157,6 +160,34 @@ export async function listAll(page: number = 1): Promise<ApiResponse<CatalogPage
     });
   } catch (error) {
     return apiFail<CatalogPage>(error, CATALOG_LOAD_FAILED);
+  }
+}
+
+/** Published tracks whose title or artist contains the query. */
+export async function searchTracks(query: string): Promise<ApiResponse<Track[]>> {
+  const pattern = toCatalogSearchPattern(query);
+
+  if (pattern === null) {
+    return apiOk<Track[]>([]);
+  }
+
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("tracks")
+      .select("*")
+      .eq("is_published", true)
+      .or(`title.ilike.%${pattern}%,artist.ilike.%${pattern}%`)
+      .order("created_at", { ascending: false })
+      .limit(SEARCH_LIMIT);
+
+    if (error) {
+      throw new AppError("INTERNAL", SEARCH_FAILED, { cause: error });
+    }
+
+    return apiOk((data ?? []).map(mapTrackRow));
+  } catch (error) {
+    return apiFail<Track[]>(error, SEARCH_FAILED);
   }
 }
 
