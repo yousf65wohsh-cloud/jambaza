@@ -117,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       ) : null}
       <div
         className={cn(
-          "min-h-dvh pt-16 md:ps-60",
+          "min-h-dvh pt-16 md:ps-20",
           isHome && signedIn && homeFriendsVisible && "xl:pe-80",
         )}
       >

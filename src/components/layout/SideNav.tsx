@@ -5,46 +5,49 @@ import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils";
 
-import { HeadphonesIcon } from "../ui/icons";
 import { isNavItemActive, NAV_ITEMS } from "./nav-items";
 
+/**
+ * Compact floating navigation bar for desktop. The bar keeps the app's own
+ * items and order; labels appear as tooltips on hover and keyboard focus.
+ */
 export function SideNav() {
   const pathname = usePathname();
 
   return (
-    <aside className="border-border/70 bg-surface/40 fixed top-16 start-0 bottom-20 z-40 hidden w-60 border-e p-4 md:block">
-      <ul className="space-y-1">
-        {NAV_ITEMS.map((item) => {
-          const active = isNavItemActive(pathname, item);
-          const Icon = item.icon;
+    <aside
+      aria-label="التنقل الرئيسي"
+      className="border-border/70 bg-surface/80 shadow-raised fixed start-4 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center gap-1 rounded-panel border p-2 backdrop-blur md:flex"
+    >
+      {NAV_ITEMS.map((item) => {
+        const active = isNavItemActive(pathname, item);
+        const Icon = item.icon;
 
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-accent/10 text-accent border-accent/20 border font-bold"
-                    : "text-muted hover:bg-surface-2 hover:text-foreground border border-transparent",
-                )}
-              >
-                <Icon className="size-5" />
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-label={item.label}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "group relative grid size-11 place-items-center rounded-control transition-colors",
+              "focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2",
+              active
+                ? "bg-accent text-white"
+                : "text-muted hover:bg-surface-2 hover:text-foreground",
+            )}
+          >
+            <Icon className="size-5" />
 
-      <div className="border-border/70 text-muted absolute inset-x-4 bottom-5 border-t pt-4 text-xs leading-5">
-        <p className="text-foreground flex items-center gap-2 font-bold">
-          <HeadphonesIcon className="text-accent size-4" />
-          جمبزة
-        </p>
-        <p className="mt-1">استمع مع أصدقائك.</p>
-      </div>
+            <span
+              aria-hidden="true"
+              className="border-border bg-surface-2 text-foreground shadow-card pointer-events-none absolute start-full top-1/2 z-50 ms-3 -translate-y-1/2 rounded-lg border px-2.5 py-1 text-xs font-medium whitespace-nowrap opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              {item.label}
+            </span>
+          </Link>
+        );
+      })}
     </aside>
   );
 }
