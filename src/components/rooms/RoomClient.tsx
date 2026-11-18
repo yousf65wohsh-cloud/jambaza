@@ -35,6 +35,7 @@ function StatusPill({ tone, children }: { tone: "success" | "danger" | "muted"; 
 
 export function RoomClient({ roomId }: { roomId: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const volume = usePlayerStore((state) => state.volume);
   const {
     room,
     isHost,
@@ -60,6 +61,15 @@ export function RoomClient({ roomId }: { roomId: string }) {
   useEffect(() => {
     usePlayerStore.getState().pause();
   }, []);
+
+  // Volume is a per-listener preference: apply it to this browser's audio
+  // element only. It is never written to the database or sent over Realtime.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = volume;
+    }
+  }, [volume]);
 
   const knownDuration =
     duration && duration > 0 ? duration : (track?.durationSeconds ?? null);
