@@ -4,19 +4,33 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { CategoryChips, type MusicCategory } from "@/components/catalog/CategoryChips";
 import { TrackCard } from "@/components/catalog/TrackCard";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
+import { MusicSearch } from "@/components/search/MusicSearch";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
-import { MusicIcon, NextIcon, PreviousIcon } from "@/components/ui/icons";
-import { hasCatalogSession, listAll } from "@/lib/catalog/data";
+import { MusicIcon, NextIcon, PreviousIcon, SearchIcon } from "@/components/ui/icons";
+import { hasCatalogSession, listAll, searchTracks } from "@/lib/catalog/data";
 import { usePlayerStore } from "@/stores/player";
 import type { Track } from "@/types/track";
 
 function parsePage(value: string | null): number {
   const parsed = Number.parseInt(value ?? "1", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+/**
+ * The catalog currently holds music only, so the "موسيقى" chip keeps every
+ * loaded row. The filter stays client-side and is ready for more categories.
+ */
+function filterByCategory(tracks: Track[], category: MusicCategory): Track[] {
+  if (category === "all") {
+    return tracks;
+  }
+
+  return tracks.filter((track) => track.sourceType === "upload" || track.sourceType === "youtube");
 }
 
 function MusicHeader() {
@@ -43,6 +57,12 @@ function MusicPageContent() {
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [query, setQuery] = useState<string | null>(null);
+  const [category, setCategory] = useState<MusicCategory>("all");
+  const [searchResults, setSearchResults] = useState<Track[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -91,6 +111,38 @@ function MusicPageContent() {
     };
   }, [page, router]);
 
+  useEffect(() => {
+    if (query === null) {
+      return;
+    }
+
+    const activeQuery = query;
+    let active = true;
+
+    async function search() {
+      setSearching(true);
+      setSearchError(null);
+
+      const result = await searchTracks(activeQuery);
+      if (!active) return;
+
+      if (result.ok) {
+        setSearchResults(result.data);
+      } else {
+        setSearchResults([]);
+        setSearchError(result.error.message);
+      }
+
+      setSearching(false);
+    }
+
+    void search();
+
+    return () => {
+      active = false;
+    };
+  }, [query]);
+
   if (loading || hasSession === null) {
     return (
       <main className="flex items-center justify-center py-20">
@@ -110,12 +162,50 @@ function MusicPageContent() {
 
   const pageSize = 24;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const sourceTracks = query !== null ? searchResults : tracks;
+  const visibleTracks = filterByCategory(sourceTracks, category);
 
   return (
     <main className="space-y-6">
       <MusicHeader />
 
-      {error ? (
+      <div className="space-y-3">
+        <MusicSearch onQueryChange={setQuery} />
+        <CategoryChips value={category} onChange={setCategory} />
+      </div>
+
+      {query !== null ? (
+        searching ? (
+          <div className="flex items-center justify-center py-16">
+            <Spinner className="size-6" />
+          </div>
+        ) : searchError ? (
+          <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
+            <p role="alert" className="text-danger">
+              {searchError}
+            </p>
+          </div>
+        ) : visibleTracks.length === 0 ? (
+          <EmptyState
+            icon={<SearchIcon className="size-6" />}
+            title="لا توجد نتائج مطابقة"
+            description={`لم نعثر على أغانٍ تطابق «${query}». جرّب كلمات أخرى.`}
+          />
+        ) : (
+          <>
+            <p className="text-muted text-sm">{visibleTracks.length} نتيجة</p>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {visibleTracks.map((track) => (
+                <TrackCard
+                  key={track.id}
+                  track={track}
+                  onPlay={(selected) => setTrack(selected, visibleTracks)}
+                />
+              ))}
+            </div>
+          </>
+        )
+      ) : error ? (
         <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
           <p role="alert" className="text-danger">
             {error}
@@ -143,12 +233,12 @@ function MusicPageContent() {
             ) : null}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {tracks.map((track) => (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {visibleTracks.map((track) => (
               <TrackCard
                 key={track.id}
                 track={track}
-                onPlay={(selected) => setTrack(selected, tracks)}
+                onPlay={(selected) => setTrack(selected, visibleTracks)}
               />
             ))}
           </div>
