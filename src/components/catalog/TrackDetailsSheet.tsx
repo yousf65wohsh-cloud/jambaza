@@ -48,7 +48,7 @@ export function TrackDetailsSheet({
         role="dialog"
         aria-modal="true"
         aria-label="تفاصيل الأغنية"
-        className="border-border bg-surface shadow-raised absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-panel border-t p-4 pb-8"
+        className="border-border bg-surface shadow-raised rise absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-panel border-t p-4 pb-8"
       >
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-extrabold tracking-tight">تفاصيل الأغنية</h2>
@@ -56,6 +56,7 @@ export function TrackDetailsSheet({
             type="button"
             onClick={onClose}
             aria-label="إغلاق"
+            autoFocus
             className="text-muted hover:text-text hover:bg-surface-2 grid size-9 place-items-center rounded-full transition-colors"
           >
             <CloseIcon className="size-5" />

@@ -13,9 +13,11 @@ export function TrackDetailsPanel({
 }) {
   return (
     <aside aria-label="تفاصيل الأغنية" className="hidden lg:block">
-      <div className="border-border bg-surface/50 shadow-card sticky top-20 max-h-[calc(100dvh-12rem)] overflow-y-auto rounded-panel border p-4">
+      <div className="border-border bg-surface/60 shadow-card sticky top-20 max-h-[calc(100dvh-11rem)] overflow-y-auto rounded-panel border p-4">
         {trackId ? (
-          <TrackDetails trackId={trackId} onPlay={onPlay} />
+          <div key={trackId} className="rise">
+            <TrackDetails trackId={trackId} onPlay={onPlay} />
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-2 px-2 py-16 text-center">
             <MusicIcon className="text-muted size-8" aria-hidden="true" />

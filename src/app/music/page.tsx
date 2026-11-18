@@ -183,7 +183,7 @@ function MusicPageContent() {
 
   function renderTrackList(items: Track[], label: string) {
     return (
-      <ul aria-label={label} className="space-y-1">
+      <ul aria-label={label} className="space-y-0.5">
         {items.map((track) => (
           <TrackRow
             key={track.id}
@@ -198,7 +198,7 @@ function MusicPageContent() {
   }
 
   return (
-    <main className="space-y-6">
+    <main className="space-y-8">
       <MusicHeader />
 
       <div className="space-y-3">
@@ -206,7 +206,7 @@ function MusicPageContent() {
         <CategoryChips value={category} onChange={setCategory} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-4">
           {query !== null ? (
             searching ? (

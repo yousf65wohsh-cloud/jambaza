@@ -19,8 +19,10 @@ export function TrackRow({ track, selected = false, onSelect, onPlay }: TrackRow
   return (
     <li
       className={cn(
-        "group flex items-center gap-3 rounded-control px-2 py-2 transition-colors",
-        selected ? "bg-surface-2" : "hover:bg-surface-2/50 focus-within:bg-surface-2/50",
+        "group flex min-h-14 items-center gap-3 rounded-control px-2 py-1 transition-colors",
+        selected
+          ? "bg-surface-2"
+          : "hover:bg-surface-2/40 focus-within:bg-surface-2/40",
       )}
     >
       <button
