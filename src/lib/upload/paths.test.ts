@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAudioPath,
+  buildAvatarPath,
   buildCoverPath,
   buildFullStoragePath,
   parsePublicStoragePath,
@@ -33,6 +34,20 @@ describe("buildCoverPath", () => {
     expect(buildCoverPath(OWNER_ID, TRACK_ID, "webp")).toBe(
       `${OWNER_ID}/${TRACK_ID}.webp`,
     );
+  });
+});
+
+describe("buildAvatarPath", () => {
+  it("builds the object path {owner_id}/avatar.{ext} inside the covers bucket", () => {
+    expect(buildAvatarPath(OWNER_ID, "png")).toBe(`${OWNER_ID}/avatar.png`);
+  });
+
+  it("normalizes a leading dot and casing", () => {
+    expect(buildAvatarPath(OWNER_ID, ".WEBP")).toBe(`${OWNER_ID}/avatar.webp`);
+  });
+
+  it("rejects unsafe extensions", () => {
+    expect(() => buildAvatarPath(OWNER_ID, "../png")).toThrow();
   });
 });
 

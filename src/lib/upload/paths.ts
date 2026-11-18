@@ -41,6 +41,20 @@ export function buildCoverPath(
   return `${ownerId}/${trackId}.${normalizeExtension(extension)}`;
 }
 
+/**
+ * Object path inside the "covers" bucket for a user's avatar:
+ * {owner_id}/avatar.{ext}
+ *
+ * Supabase prepends the bucket name, so the full storage path is
+ * covers/{owner_id}/avatar.{ext}.
+ */
+export function buildAvatarPath(
+  ownerId: string,
+  extension: CoverExtension | string,
+): string {
+  return `${ownerId}/avatar.${normalizeExtension(extension)}`;
+}
+
 /** Full display path, including the bucket name. */
 export function buildFullStoragePath(bucket: "audio" | "covers", objectPath: string): string {
   return `${bucket}/${objectPath}`;

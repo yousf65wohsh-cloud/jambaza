@@ -10,6 +10,8 @@ export interface UploadToStorageOptions {
   bucket: StorageBucket;
   path: string;
   file: File;
+  /** Overwrite an existing object at the same path instead of failing with 409. */
+  upsert?: boolean;
   onProgress?: (percent: number) => void;
 }
 
@@ -48,6 +50,7 @@ export async function uploadFileToStorage({
   bucket,
   path,
   file,
+  upsert = false,
   onProgress,
 }: UploadToStorageOptions): Promise<void> {
   const {
@@ -78,7 +81,7 @@ export async function uploadFileToStorage({
     request.setRequestHeader("apikey", anonKey);
     request.setRequestHeader("content-type", file.type);
     request.setRequestHeader("cache-control", "max-age=3600");
-    request.setRequestHeader("x-upsert", "false");
+    request.setRequestHeader("x-upsert", upsert ? "true" : "false");
 
     request.upload.onprogress = (event) => {
       if (!event.lengthComputable || event.total <= 0) return;

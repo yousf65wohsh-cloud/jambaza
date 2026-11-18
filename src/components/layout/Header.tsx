@@ -9,6 +9,7 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
 
 import { Button } from "../ui/Button";
+import { UserIcon } from "../ui/icons";
 import { OnlineIndicator } from "./OnlineIndicator";
 
 export function Header() {
@@ -60,7 +61,14 @@ export function Header() {
           {user === undefined ? (
             <span className="bg-surface-2 h-8 w-16 animate-pulse rounded-lg" aria-hidden="true" />
           ) : user ? (
-            <LogoutButton compact />
+            <>
+              <Link href="/account" aria-label="حسابي" title="حسابي">
+                <Button size="sm" variant="ghost">
+                  <UserIcon className="size-4" />
+                </Button>
+              </Link>
+              <LogoutButton compact />
+            </>
           ) : (
             <Link href="/login">
               <Button size="sm" variant="secondary">
