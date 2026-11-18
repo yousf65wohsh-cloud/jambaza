@@ -6,11 +6,20 @@ import { useEffect, useId, useRef, useState } from "react";
 import { addTrackToPlaylist, listMyPlaylists } from "@/lib/playlists/data";
 import type { Playlist } from "@/types/playlist";
 
+import { cn } from "@/lib/utils";
+
 import { Button } from "../ui/Button";
 import { Spinner } from "../ui/Spinner";
 import { ListPlusIcon } from "../ui/icons";
 
-export function AddToPlaylistMenu({ trackId }: { trackId: string }) {
+export function AddToPlaylistMenu({
+  trackId,
+  compact = false,
+}: {
+  trackId: string;
+  /** Icon-only trigger that opens upwards, for tight spots like the player bar. */
+  compact?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,26 +102,54 @@ export function AddToPlaylistMenu({ trackId }: { trackId: string }) {
     setAddingId(null);
   }
 
+  const feedback = actionError ? (
+    <p role="alert" className="text-danger text-xs">
+      {actionError}
+    </p>
+  ) : notice ? (
+    <p role="status" className="text-success text-xs">
+      {notice}
+    </p>
+  ) : null;
+
   return (
     <div ref={rootRef} className="relative inline-flex flex-col items-start gap-2">
-      <Button
-        variant="secondary"
-        onClick={toggle}
-        className="gap-2"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={menuId}
-      >
-        <ListPlusIcon className="size-4" />
-        أضف إلى قائمة التشغيل
-      </Button>
+      {compact ? (
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label="أضف إلى قائمة التشغيل"
+          title="أضف إلى قائمة التشغيل"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={menuId}
+          className="text-muted hover:bg-surface-2 hover:text-foreground grid size-9 shrink-0 cursor-pointer place-items-center rounded-full transition-colors"
+        >
+          <ListPlusIcon className="size-4" />
+        </button>
+      ) : (
+        <Button
+          variant="secondary"
+          onClick={toggle}
+          className="gap-2"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={menuId}
+        >
+          <ListPlusIcon className="size-4" />
+          أضف إلى قائمة التشغيل
+        </Button>
+      )}
 
       {open ? (
         <div
           id={menuId}
           role="menu"
           aria-label="قوائم التشغيل"
-          className="border-border bg-surface absolute start-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-xl border p-2 shadow-xl"
+          className={cn(
+            "border-border bg-surface absolute z-30 w-72 max-w-[calc(100vw-2rem)] rounded-xl border p-2 shadow-xl",
+            compact ? "end-0 bottom-full mb-2" : "start-0 top-full mt-2",
+          )}
         >
           {loading ? (
             <div className="text-muted flex items-center justify-center gap-2 px-3 py-4 text-sm">
@@ -167,18 +204,12 @@ export function AddToPlaylistMenu({ trackId }: { trackId: string }) {
               ))}
             </ul>
           )}
+
+          {compact ? <div className="px-2 pt-2">{feedback}</div> : null}
         </div>
       ) : null}
 
-      {actionError ? (
-        <p role="alert" className="text-danger text-xs">
-          {actionError}
-        </p>
-      ) : notice ? (
-        <p role="status" className="text-success text-xs">
-          {notice}
-        </p>
-      ) : null}
+      {compact ? null : feedback}
     </div>
   );
 }
