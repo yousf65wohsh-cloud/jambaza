@@ -19,7 +19,7 @@ function LibraryPageContent() {
 
       <PlaylistsClient />
 
-      <div className="border-border border-t pt-8">
+      <div className="border-border/70 border-t pt-10">
         <LibraryClient showSuccess={uploaded} uploadDenied={uploadDenied} />
       </div>
     </main>

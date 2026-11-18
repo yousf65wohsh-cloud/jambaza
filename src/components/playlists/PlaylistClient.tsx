@@ -18,7 +18,7 @@ import { MusicIcon, PlayIcon, TrashIcon } from "../ui/icons";
 function TrackCover({ track }: { track: Track }) {
   if (!track.coverUrl) {
     return (
-      <div className="bg-surface-2 text-muted grid size-12 shrink-0 place-items-center rounded-lg">
+      <div className="bg-surface-2 text-muted grid size-12 shrink-0 place-items-center rounded-control">
         <MusicIcon className="size-5" />
       </div>
     );
@@ -31,7 +31,7 @@ function TrackCover({ track }: { track: Track }) {
       src={track.coverUrl}
       alt={`غلاف ${track.title}`}
       loading="lazy"
-      className="bg-surface-2 size-12 shrink-0 rounded-lg object-cover"
+      className="bg-surface-2 size-12 shrink-0 rounded-control object-cover"
     />
   );
 }
@@ -116,7 +116,7 @@ export function PlaylistClient({ playlistId }: { playlistId: string }) {
 
   if (loading) {
     return (
-      <div className="border-border/80 bg-surface/50 flex items-center justify-center gap-3 rounded-2xl border border-dashed px-6 py-14">
+      <div className="border-border bg-surface/50 flex items-center justify-center gap-3 rounded-panel border border-dashed px-6 py-14">
         <Spinner />
         <span className="text-muted text-sm">جارٍ تحميل قائمة التشغيل...</span>
       </div>
@@ -126,7 +126,7 @@ export function PlaylistClient({ playlistId }: { playlistId: string }) {
   if (error) {
     return (
       <div className="space-y-3">
-        <Link href="/library" className="text-muted hover:text-foreground text-xs font-medium">
+        <Link href="/library" className="text-muted hover:text-text text-xs font-medium">
           ← العودة إلى مكتبتي
         </Link>
         <div className="border-danger/30 bg-danger/5 rounded-xl border p-4 text-sm">
@@ -149,7 +149,7 @@ export function PlaylistClient({ playlistId }: { playlistId: string }) {
   if (!playlist) {
     return (
       <div className="space-y-4">
-        <Link href="/library" className="text-muted hover:text-foreground text-xs font-medium">
+        <Link href="/library" className="text-muted hover:text-text text-xs font-medium">
           ← العودة إلى مكتبتي
         </Link>
         <EmptyState
@@ -168,8 +168,8 @@ export function PlaylistClient({ playlistId }: { playlistId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Link href="/library" className="text-muted hover:text-foreground text-xs font-medium">
+      <div className="rise space-y-2">
+        <Link href="/library" className="text-muted hover:text-text text-xs font-medium">
           ← العودة إلى مكتبتي
         </Link>
         <h1 dir="auto" className="text-2xl font-extrabold tracking-tight sm:text-3xl">
@@ -221,7 +221,7 @@ export function PlaylistClient({ playlistId }: { playlistId: string }) {
               <li
                 key={track.id}
                 className={cn(
-                  "card flex items-center gap-2 p-3",
+                  "card hover:border-accent/40 flex items-center gap-2 p-3 transition-colors",
                   isActive && "border-accent/50 bg-accent/5",
                 )}
               >
@@ -266,7 +266,7 @@ export function PlaylistClient({ playlistId }: { playlistId: string }) {
                   disabled={Boolean(removingId)}
                   aria-label={`إزالة ${track.title} من القائمة`}
                   title="إزالة من القائمة"
-                  className="text-muted hover:text-danger hover:bg-danger/10 grid size-9 shrink-0 place-items-center rounded-lg transition-colors disabled:opacity-40"
+                  className="text-muted hover:text-danger hover:bg-danger/10 grid size-9 shrink-0 place-items-center rounded-control transition-colors disabled:opacity-40"
                 >
                   {isRemoving ? <Spinner /> : <TrashIcon className="size-4" />}
                 </button>

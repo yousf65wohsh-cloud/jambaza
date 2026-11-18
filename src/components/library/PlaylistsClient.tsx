@@ -148,7 +148,7 @@ export function PlaylistsClient() {
   }
 
   return (
-    <section className="space-y-4" aria-labelledby="playlists-heading">
+    <section className="rise space-y-4" aria-labelledby="playlists-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="playlists-heading" className="text-xl font-extrabold tracking-tight">
@@ -204,7 +204,7 @@ export function PlaylistsClient() {
       ) : null}
 
       {loading ? (
-        <div className="border-border/80 bg-surface/50 flex items-center justify-center gap-3 rounded-2xl border border-dashed px-6 py-10">
+        <div className="border-border bg-surface/50 flex items-center justify-center gap-3 rounded-panel border border-dashed px-6 py-10">
           <Spinner />
           <span className="text-muted text-sm">جارٍ تحميل قوائم التشغيل...</span>
         </div>
@@ -217,7 +217,10 @@ export function PlaylistsClient() {
       ) : playlists.length > 0 ? (
         <ul className="space-y-2">
           {playlists.map((playlist) => (
-            <li key={playlist.id} className="card flex flex-wrap items-center gap-3 p-4">
+            <li
+              key={playlist.id}
+              className="card hover:border-accent/40 flex flex-wrap items-center gap-3 p-4 transition-colors"
+            >
               <Link href={`/playlists?id=${playlist.id}`} className="min-w-0 flex-1 space-y-0.5">
                 <span className="hover:text-accent block truncate font-bold transition-colors">
                   {playlist.name}
@@ -246,7 +249,7 @@ export function PlaylistsClient() {
                   }}
                   aria-label={`حذف ${playlist.name}`}
                   title="حذف القائمة"
-                  className="text-muted hover:text-danger hover:bg-danger/10 grid size-9 shrink-0 place-items-center rounded-lg transition-colors"
+                  className="text-muted hover:text-danger hover:bg-danger/10 grid size-9 shrink-0 place-items-center rounded-control transition-colors"
                 >
                   <TrashIcon className="size-4" />
                 </button>

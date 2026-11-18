@@ -18,7 +18,7 @@ import { DeleteTrackDialog } from "./DeleteTrackDialog";
 function TrackCover({ track }: { track: Track }) {
   if (!track.coverUrl) {
     return (
-      <div className="bg-surface-2 text-muted grid size-12 shrink-0 place-items-center rounded-lg">
+      <div className="bg-surface-2 text-muted grid size-12 shrink-0 place-items-center rounded-control">
         <MusicIcon className="size-5" />
       </div>
     );
@@ -31,7 +31,7 @@ function TrackCover({ track }: { track: Track }) {
       src={track.coverUrl}
       alt={`غلاف ${track.title}`}
       loading="lazy"
-      className="bg-surface-2 size-12 shrink-0 rounded-lg object-cover"
+      className="bg-surface-2 size-12 shrink-0 rounded-control object-cover"
     />
   );
 }
@@ -143,7 +143,7 @@ export function LibraryClient({
   }
 
   return (
-    <section className="space-y-4" aria-labelledby="my-tracks-heading">
+    <section className="rise space-y-4" aria-labelledby="my-tracks-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="my-tracks-heading" className="text-xl font-extrabold tracking-tight">
@@ -187,7 +187,7 @@ export function LibraryClient({
       ) : null}
 
       {loading ? (
-        <div className="border-border/80 bg-surface/50 flex items-center justify-center gap-3 rounded-2xl border border-dashed px-6 py-14">
+        <div className="border-border bg-surface/50 flex items-center justify-center gap-3 rounded-panel border border-dashed px-6 py-14">
           <Spinner />
           <span className="text-muted text-sm">جارٍ تحميل مكتبتك...</span>
         </div>
@@ -208,7 +208,10 @@ export function LibraryClient({
       ) : tracks.length > 0 ? (
         <ul className="space-y-2">
           {tracks.map((track) => (
-            <li key={track.id} className="card flex items-center gap-2 p-3">
+            <li
+              key={track.id}
+              className="card hover:border-accent/40 flex items-center gap-2 p-3 transition-colors"
+            >
               <button
                 type="button"
                 onClick={() => handlePlay(track)}
@@ -239,7 +242,7 @@ export function LibraryClient({
                 }}
                 aria-label={`حذف ${track.title}`}
                 title="حذف الأغنية"
-                className="text-muted hover:text-danger hover:bg-danger/10 grid size-9 shrink-0 place-items-center rounded-lg transition-colors"
+                className="text-muted hover:text-danger hover:bg-danger/10 grid size-9 shrink-0 place-items-center rounded-control transition-colors"
               >
                 <TrashIcon className="size-4" />
               </button>
