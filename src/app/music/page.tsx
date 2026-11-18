@@ -5,6 +5,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { CategoryChips, type MusicCategory } from "@/components/catalog/CategoryChips";
+import { TrackDetailsPanel } from "@/components/catalog/TrackDetailsPanel";
+import { TrackDetailsSheet } from "@/components/catalog/TrackDetailsSheet";
 import { TrackRow } from "@/components/catalog/TrackRow";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
 import { MusicSearch } from "@/components/search/MusicSearch";
@@ -64,6 +66,7 @@ function MusicPageContent() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -168,6 +171,14 @@ function MusicPageContent() {
 
   function handleSelect(track: Track) {
     setSelectedId(track.id);
+
+    if (!window.matchMedia("(min-width: 1024px)").matches) {
+      setSheetOpen(true);
+    }
+  }
+
+  function handlePlay(track: Track) {
+    setTrack(track, visibleTracks);
   }
 
   function renderTrackList(items: Track[], label: string) {
@@ -195,99 +206,113 @@ function MusicPageContent() {
         <CategoryChips value={category} onChange={setCategory} />
       </div>
 
-      {query !== null ? (
-        searching ? (
-          <div className="flex items-center justify-center py-16">
-            <Spinner className="size-6" />
-          </div>
-        ) : searchError ? (
-          <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
-            <p role="alert" className="text-danger">
-              {searchError}
-            </p>
-          </div>
-        ) : visibleTracks.length === 0 ? (
-          <EmptyState
-            icon={<SearchIcon className="size-6" />}
-            title="لا توجد نتائج مطابقة"
-            description={`لم نعثر على أغانٍ تطابق «${query}». جرّب كلمات أخرى.`}
-          />
-        ) : (
-          <>
-            <p className="text-muted text-sm">{visibleTracks.length} نتيجة</p>
-            {renderTrackList(visibleTracks, "نتائج البحث")}
-          </>
-        )
-      ) : error ? (
-        <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
-          <p role="alert" className="text-danger">
-            {error}
-          </p>
-          <Link href="/music">
-            <Button variant="secondary" size="sm">
-              إعادة المحاولة
-            </Button>
-          </Link>
-        </div>
-      ) : tracks.length === 0 ? (
-        <EmptyState
-          icon={<MusicIcon className="size-6" />}
-          title="لا توجد أغاني منشورة"
-          description="ستظهر الأغاني في الكتالوج بعد نشرها من مكتبة الفنان."
-        />
-      ) : (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-muted text-sm">{total} أغنية منشورة</p>
-            {totalPages > 1 ? (
-              <p className="text-muted text-sm tabular-nums">
-                الصفحة {page} من {totalPages}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+        <div className="min-w-0 space-y-4">
+          {query !== null ? (
+            searching ? (
+              <div className="flex items-center justify-center py-16">
+                <Spinner className="size-6" />
+              </div>
+            ) : searchError ? (
+              <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
+                <p role="alert" className="text-danger">
+                  {searchError}
+                </p>
+              </div>
+            ) : visibleTracks.length === 0 ? (
+              <EmptyState
+                icon={<SearchIcon className="size-6" />}
+                title="لا توجد نتائج مطابقة"
+                description={`لم نعثر على أغانٍ تطابق «${query}». جرّب كلمات أخرى.`}
+              />
+            ) : (
+              <>
+                <p className="text-muted text-sm">{visibleTracks.length} نتيجة</p>
+                {renderTrackList(visibleTracks, "نتائج البحث")}
+              </>
+            )
+          ) : error ? (
+            <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
+              <p role="alert" className="text-danger">
+                {error}
               </p>
-            ) : null}
-          </div>
-
-          {renderTrackList(visibleTracks, "أغاني الكتالوج")}
-
-          {totalPages > 1 ? (
-            <nav
-              aria-label="التنقل بين صفحات الموسيقى"
-              className="flex items-center justify-between gap-3 pt-2"
-            >
-              {page > 1 ? (
-                <Link href={`/music?page=${page - 1}`}>
-                  <Button variant="secondary" size="sm" className="gap-1.5">
-                    <PreviousIcon className="size-4" />
-                    السابق
-                  </Button>
-                </Link>
-              ) : (
-                <Button variant="secondary" size="sm" disabled className="gap-1.5">
-                  <PreviousIcon className="size-4" />
-                  السابق
+              <Link href="/music">
+                <Button variant="secondary" size="sm">
+                  إعادة المحاولة
                 </Button>
-              )}
+              </Link>
+            </div>
+          ) : tracks.length === 0 ? (
+            <EmptyState
+              icon={<MusicIcon className="size-6" />}
+              title="لا توجد أغاني منشورة"
+              description="ستظهر الأغاني في الكتالوج بعد نشرها من مكتبة الفنان."
+            />
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-muted text-sm">{total} أغنية منشورة</p>
+                {totalPages > 1 ? (
+                  <p className="text-muted text-sm tabular-nums">
+                    الصفحة {page} من {totalPages}
+                  </p>
+                ) : null}
+              </div>
 
-              <span className="text-muted text-sm tabular-nums">
-                {page} / {totalPages}
-              </span>
+              {renderTrackList(visibleTracks, "أغاني الكتالوج")}
 
-              {hasMore ? (
-                <Link href={`/music?page=${page + 1}`}>
-                  <Button variant="secondary" size="sm" className="gap-1.5">
-                    التالي
-                    <NextIcon className="size-4" />
-                  </Button>
-                </Link>
-              ) : (
-                <Button variant="secondary" size="sm" disabled className="gap-1.5">
-                  التالي
-                  <NextIcon className="size-4" />
-                </Button>
-              )}
-            </nav>
-          ) : null}
-        </>
-      )}
+              {totalPages > 1 ? (
+                <nav
+                  aria-label="التنقل بين صفحات الموسيقى"
+                  className="flex items-center justify-between gap-3 pt-2"
+                >
+                  {page > 1 ? (
+                    <Link href={`/music?page=${page - 1}`}>
+                      <Button variant="secondary" size="sm" className="gap-1.5">
+                        <PreviousIcon className="size-4" />
+                        السابق
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button variant="secondary" size="sm" disabled className="gap-1.5">
+                      <PreviousIcon className="size-4" />
+                      السابق
+                    </Button>
+                  )}
+
+                  <span className="text-muted text-sm tabular-nums">
+                    {page} / {totalPages}
+                  </span>
+
+                  {hasMore ? (
+                    <Link href={`/music?page=${page + 1}`}>
+                      <Button variant="secondary" size="sm" className="gap-1.5">
+                        التالي
+                        <NextIcon className="size-4" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Button variant="secondary" size="sm" disabled className="gap-1.5">
+                      التالي
+                      <NextIcon className="size-4" />
+                    </Button>
+                  )}
+                </nav>
+              ) : null}
+            </>
+          )}
+        </div>
+
+        <TrackDetailsPanel trackId={selectedId} onPlay={handlePlay} />
+      </div>
+
+      {sheetOpen && selectedId ? (
+        <TrackDetailsSheet
+          trackId={selectedId}
+          onClose={() => setSheetOpen(false)}
+          onPlay={handlePlay}
+        />
+      ) : null}
     </main>
   );
 }

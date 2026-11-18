@@ -47,6 +47,19 @@ export function formatDuration(seconds: number | null): string {
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
 
+/** Arabic-aware plural label for the number of track comments. */
+export function formatCommentCount(count: number): string {
+  if (count <= 0) {
+    return "لا توجد تعليقات";
+  }
+
+  if (count === 1) {
+    return "تعليق واحد";
+  }
+
+  return `${count} تعليقات`;
+}
+
 /** Arabic-aware plural label for the number of track ratings. */
 export function formatRatingCount(count: number): string {
   if (count <= 0) {

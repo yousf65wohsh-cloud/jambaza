@@ -2,41 +2,32 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
 
 import { AddToPlaylistMenu } from "@/components/catalog/AddToPlaylistMenu";
 import { FeedbackForm } from "@/components/catalog/FeedbackForm";
 import { SignInPrompt } from "@/components/catalog/SignInPrompt";
+import { TrackComments } from "@/components/catalog/TrackComments";
 import { TrackCover } from "@/components/catalog/TrackCover";
+import { TrackRatingSummary } from "@/components/catalog/TrackRatingSummary";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
-import { MusicIcon, PlayIcon, StarIcon } from "@/components/ui/icons";
-import {
-  getMyTrackRating,
-  getTrack,
-  hasCatalogSession,
-  listTrackComments,
-  listTrackRatings,
-} from "@/lib/catalog/data";
-import { formatFeedbackDate, formatRatingCount, formatReleaseDate } from "@/lib/catalog/format";
-import { averageRating } from "@/lib/catalog/rating";
+import { MusicIcon, PlayIcon } from "@/components/ui/icons";
+import { formatCommentCount, formatReleaseDate } from "@/lib/catalog/format";
+import { useTrackDetails } from "@/lib/catalog/useTrackDetails";
 import { usePlayerStore } from "@/stores/player";
-import type { Track, TrackComment } from "@/types/track";
 
-const RATING_VALUES = [1, 2, 3, 4, 5] as const;
-
-function formatCommentCount(count: number): string {
-  if (count === 0) {
-    return "لا توجد تعليقات";
-  }
-
-  if (count === 1) {
-    return "تعليق واحد";
-  }
-
-  return `${count} تعليقات`;
+function BackLink() {
+  return (
+    <Link
+      href="/music"
+      className="text-muted hover:text-text text-xs font-medium transition-colors"
+    >
+      ← العودة إلى الموسيقى
+    </Link>
+  );
 }
 
 function TrackNotFound() {
@@ -63,86 +54,18 @@ function TrackPageContent() {
   const id = searchParams.get("id") ?? "";
   const setPlayerTrack = usePlayerStore((state) => state.setTrack);
 
-  const [loading, setLoading] = useState(true);
-  const [hasSession, setHasSession] = useState<boolean | null>(null);
-  const [track, setTrack] = useState<Track | null | undefined>(undefined);
-  const [ratings, setRatings] = useState<number[]>([]);
-  const [myRating, setMyRating] = useState<number | null>(null);
-  const [comments, setComments] = useState<TrackComment[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [ratingsError, setRatingsError] = useState<string | null>(null);
-  const [commentsError, setCommentsError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-
-    async function load() {
-      if (!id) {
-        setTrack(null);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      setRatingsError(null);
-      setCommentsError(null);
-
-      const session = await hasCatalogSession();
-      if (!active) return;
-      setHasSession(session);
-
-      if (!session) {
-        setLoading(false);
-        return;
-      }
-
-      const [trackResult, ratingsResult, commentsResult, myRatingResult] = await Promise.all([
-        getTrack(id),
-        listTrackRatings(id),
-        listTrackComments(id),
-        getMyTrackRating(id),
-      ]);
-      if (!active) return;
-
-      if (!trackResult.ok) {
-        setError(trackResult.error.message);
-        setTrack(undefined);
-        setLoading(false);
-        return;
-      }
-
-      setTrack(trackResult.data);
-      if (ratingsResult.ok) {
-        setRatings(ratingsResult.data.map((r) => r.rating));
-      } else {
-        setRatingsError(ratingsResult.error.message);
-        setRatings([]);
-      }
-
-      if (commentsResult.ok) {
-        setComments(commentsResult.data);
-      } else {
-        setCommentsError(commentsResult.error.message);
-        setComments([]);
-      }
-
-      if (myRatingResult.ok) {
-        setMyRating(myRatingResult.data);
-      } else {
-        setMyRating(null);
-      }
-
-      setLoading(false);
-    }
-
-    void load();
-
-    return () => {
-      active = false;
-    };
-  }, [id, reloadKey]);
+  const {
+    loading,
+    hasSession,
+    track,
+    ratings,
+    myRating,
+    comments,
+    error,
+    ratingsError,
+    commentsError,
+    reload,
+  } = useTrackDetails(id);
 
   if (loading || hasSession === null) {
     return (
@@ -155,9 +78,7 @@ function TrackPageContent() {
   if (!hasSession) {
     return (
       <main className="space-y-6">
-        <Link href="/music" className="text-muted hover:text-text text-xs font-medium">
-          ← العودة إلى الموسيقى
-        </Link>
+        <BackLink />
         <SignInPrompt />
       </main>
     );
@@ -166,14 +87,12 @@ function TrackPageContent() {
   if (error) {
     return (
       <main className="space-y-6">
-        <Link href="/music" className="text-muted hover:text-text text-xs font-medium">
-          ← العودة إلى الموسيقى
-        </Link>
+        <BackLink />
         <div className="border-danger/30 bg-danger/5 space-y-3 rounded-xl border p-4 text-sm">
           <p role="alert" className="text-danger">
             {error}
           </p>
-          <Button variant="secondary" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+          <Button variant="secondary" size="sm" onClick={reload}>
             إعادة المحاولة
           </Button>
         </div>
@@ -185,17 +104,9 @@ function TrackPageContent() {
     return <TrackNotFound />;
   }
 
-  const average = averageRating(ratings);
-  const ratingCount = ratings.length;
-
   return (
     <main className="space-y-8">
-      <Link
-        href="/music"
-        className="text-muted hover:text-text text-xs font-medium transition-colors"
-      >
-        ← العودة إلى الموسيقى
-      </Link>
+      <BackLink />
 
       <article className="grid gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] md:items-start lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
         <div className="border-border bg-surface shadow-raised rise overflow-hidden rounded-panel border">
@@ -223,34 +134,7 @@ function TrackPageContent() {
             </div>
           ) : null}
 
-          <div className="space-y-2">
-            {ratingsError ? (
-              <p role="alert" className="text-danger text-sm">
-                {ratingsError}
-              </p>
-            ) : ratingCount > 0 ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  role="img"
-                  aria-label={`متوسط التقييم ${average.toFixed(1)} من 5`}
-                  className="flex items-center gap-0.5"
-                >
-                  {RATING_VALUES.map((value) => (
-                    <StarIcon
-                      key={value}
-                      className={
-                        value <= Math.round(average) ? "text-accent size-4" : "text-border size-4"
-                      }
-                    />
-                  ))}
-                </div>
-                <span className="text-lg font-extrabold tabular-nums">{average.toFixed(1)}</span>
-                <span className="text-muted text-sm">من 5 · {formatRatingCount(ratingCount)}</span>
-              </div>
-            ) : (
-              <p className="text-muted text-sm">لا توجد تقييمات بعد — كن أول من يقيّم.</p>
-            )}
-          </div>
+          <TrackRatingSummary ratings={ratings} error={ratingsError} />
 
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -282,7 +166,7 @@ function TrackPageContent() {
         key={`${track.id}-${myRating ?? "none"}`}
         trackId={track.id}
         initialRating={myRating}
-        onSuccess={() => setReloadKey((k) => k + 1)}
+        onSuccess={reload}
       />
 
       <section className="space-y-4" aria-labelledby="comments-heading">
@@ -293,36 +177,11 @@ function TrackPageContent() {
           <span className="text-muted text-sm">{formatCommentCount(comments.length)}</span>
         </div>
 
-        {commentsError ? (
-          <p
-            role="alert"
-            className="bg-danger/10 border-danger/30 text-danger rounded-xl border px-4 py-3 text-sm"
-          >
-            {commentsError}
-          </p>
-        ) : comments.length > 0 ? (
-          <ul className="space-y-3">
-            {comments.map((comment) => (
-              <li
-                key={comment.id}
-                className="card hover:border-accent/30 space-y-2 p-4 transition-colors"
-              >
-                <p dir="auto" className="text-sm leading-7 whitespace-pre-line">
-                  {comment.body}
-                </p>
-                <time dateTime={comment.createdAt} className="text-muted block text-xs">
-                  {formatFeedbackDate(comment.createdAt)}
-                </time>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            icon={<StarIcon className="size-6" />}
-            title="لا توجد تعليقات بعد"
-            description="شارك رأيك في الأغنية من النموذج أعلاه لتظهر تعليقاتك هنا."
-          />
-        )}
+        <TrackComments
+          comments={comments}
+          error={commentsError}
+          emptyDescription="شارك رأيك في الأغنية من النموذج أعلاه لتظهر تعليقاتك هنا."
+        />
       </section>
     </main>
   );
