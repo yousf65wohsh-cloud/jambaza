@@ -9,6 +9,7 @@ import type { FriendProfile } from "@/lib/friends/mapping";
 import { createClient } from "@/lib/supabase/client";
 import type { ApiResponse } from "@/types/api";
 import type { Database, ListeningRoomRow } from "@/types/database";
+import { mapTrackRow, type Track } from "@/types/track";
 
 import { canHostLeave } from "./membership";
 
@@ -431,5 +432,41 @@ export async function endRoom(roomId: string): Promise<ApiResponse<null>> {
     return apiOk(null);
   } catch (error) {
     return apiFail<null>(error, END_FAILED_MESSAGE);
+  }
+}
+
+export interface ListPublishedForPickerOptions {
+  limit?: number;
+}
+
+const PUBLISHED_PICKER_FAILED_MESSAGE = "تعذّر تحميل المقاطع المنشورة. حاول مرة أخرى.";
+
+/**
+ * Published, playable upload tracks for the room picker. Read-only; does not
+ * mutate listTracks used by other pages.
+ */
+export async function listPublishedForPicker(
+  options: ListPublishedForPickerOptions = {},
+): Promise<ApiResponse<Track[]>> {
+  try {
+    const { supabase } = await getSupabaseAndUser();
+    const limit = Math.min(Math.max(Math.trunc(options.limit ?? 50), 1), 50);
+
+    const { data, error } = await supabase
+      .from("tracks")
+      .select("*")
+      .eq("is_published", true)
+      .eq("source_type", "upload")
+      .not("audio_path", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      throw new AppError("INTERNAL", PUBLISHED_PICKER_FAILED_MESSAGE, { cause: error });
+    }
+
+    return apiOk((data ?? []).map(mapTrackRow));
+  } catch (error) {
+    return apiFail<Track[]>(error, PUBLISHED_PICKER_FAILED_MESSAGE);
   }
 }
