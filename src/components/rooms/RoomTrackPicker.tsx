@@ -3,83 +3,80 @@
 import { useEffect, useId, useMemo, useState } from "react";
 
 import { getPlaylist, listMyPlaylists } from "@/lib/playlists/data";
-import { listTracks } from "@/lib/tracks/data";
-import type { PlaylistDetails } from "@/types/playlist";
+import { listPublishedForPicker } from "@/lib/rooms/data";
+import { buildPickerTracks } from "@/lib/rooms/picker";
+import { createClient } from "@/lib/supabase/client";
 import type { Track } from "@/types/track";
 
 interface RoomTrackPickerProps {
   currentTrackId: string | null;
-  /** Host id. Only tracks this user can sign from the private bucket qualify. */
+  /** Host id for the room; kept for call-site compatibility. */
   ownerId: string;
   disabled?: boolean;
   onSelect: (track: Track) => void;
-}
-
-interface PlaylistGroup {
-  playlist: PlaylistDetails;
-  tracks: Track[];
-}
-
-function isPlayableUpload(track: Track, ownerId: string): boolean {
-  return (
-    track.ownerId === ownerId &&
-    track.sourceType === "upload" &&
-    Boolean(track.audioPath)
-  );
 }
 
 function trackLabel(track: Track): string {
   return track.artist ? `${track.title} — ${track.artist}` : track.title;
 }
 
+function canPickTrack(track: Track, currentUserId: string | null): boolean {
+  return Boolean(track.audioPath) && (track.isPublished || track.ownerId === currentUserId);
+}
+
 /**
- * Host track picker. Sources are the host's own uploaded catalog and their
- * personal playlists.
- *
- * Only the host can sign a URL for the private audio bucket under the current
- * owner-only storage policy, so tracks owned by other users are intentionally
- * filtered out instead of failing at playback time.
+ * Host track picker. Sources are published catalog tracks and the host's own
+ * playlist tracks. Tracks without a playable audio path are excluded. Published
+ * tracks from other owners are allowed; unpublished tracks from other owners
+ * are excluded.
  */
 export function RoomTrackPicker({
   currentTrackId,
-  ownerId,
+  ownerId: _ownerId,
   disabled = false,
   onSelect,
 }: RoomTrackPickerProps) {
   const selectId = useId();
-  const [library, setLibrary] = useState<Track[]>([]);
-  const [playlists, setPlaylists] = useState<PlaylistGroup[]>([]);
+  const [published, setPublished] = useState<Track[]>([]);
+  const [playlistTracks, setPlaylistTracks] = useState<Track[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
 
     async function load() {
       setLoading(true);
-      setError(null);
+      setLoadError(null);
 
-      const [libraryResult, playlistsResult] = await Promise.all([
-        listTracks({ limit: 50 }),
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const userId = user?.id ?? null;
+
+      const [publishedResult, playlistsResult] = await Promise.all([
+        listPublishedForPicker({ limit: 50 }),
         listMyPlaylists(),
       ]);
 
       if (!active) return;
 
-      if (!libraryResult.ok) {
-        setError(libraryResult.error.message);
+      setCurrentUserId(userId);
+
+      if (!publishedResult.ok) {
+        setLoadError(publishedResult.error.message);
+        setPublished([]);
+        setPlaylistTracks([]);
         setLoading(false);
         return;
       }
 
-      setLibrary(
-        libraryResult.data.tracks.filter((track) =>
-          isPlayableUpload(track, ownerId),
-        ),
-      );
-
       if (!playlistsResult.ok) {
-        setError(playlistsResult.error.message);
+        setLoadError(playlistsResult.error.message);
+        setPublished(publishedResult.data);
+        setPlaylistTracks([]);
         setLoading(false);
         return;
       }
@@ -90,22 +87,14 @@ export function RoomTrackPicker({
 
       if (!active) return;
 
-      const groups: PlaylistGroup[] = [];
-
+      const ownPlaylistTracks: Track[] = [];
       for (const result of details) {
         if (!result.ok || !result.data) continue;
-
-        const playlist = result.data;
-        const tracks = playlist.tracks.filter((track) =>
-          isPlayableUpload(track, ownerId),
-        );
-
-        if (tracks.length > 0) {
-          groups.push({ playlist, tracks });
-        }
+        ownPlaylistTracks.push(...result.data.tracks);
       }
 
-      setPlaylists(groups);
+      setPublished(publishedResult.data);
+      setPlaylistTracks(ownPlaylistTracks);
       setLoading(false);
     }
 
@@ -114,83 +103,101 @@ export function RoomTrackPicker({
     return () => {
       active = false;
     };
-  }, [ownerId]);
+  }, []);
+
+  const publishedGroup = useMemo(() => {
+    const seen = new Set<string>();
+    return buildPickerTracks(published, []).filter((track) => {
+      if (!canPickTrack(track, currentUserId)) return false;
+      if (seen.has(track.id)) return false;
+      seen.add(track.id);
+      return true;
+    });
+  }, [currentUserId, published]);
+
+  const playlistGroup = useMemo(() => {
+    const publishedIds = new Set(publishedGroup.map((track) => track.id));
+    const seen = new Set<string>();
+    return buildPickerTracks([], playlistTracks).filter((track) => {
+      if (publishedIds.has(track.id)) return false;
+      if (!canPickTrack(track, currentUserId)) return false;
+      if (seen.has(track.id)) return false;
+      seen.add(track.id);
+      return true;
+    });
+  }, [currentUserId, playlistTracks, publishedGroup]);
 
   const tracksById = useMemo(() => {
     const map = new Map<string, Track>();
-
-    for (const track of library) {
+    for (const track of [...publishedGroup, ...playlistGroup]) {
       map.set(track.id, track);
     }
-
-    for (const group of playlists) {
-      for (const track of group.tracks) {
-        map.set(track.id, track);
-      }
-    }
-
     return map;
-  }, [library, playlists]);
+  }, [playlistGroup, publishedGroup]);
 
-  const hasTracks = library.length > 0 || playlists.length > 0;
-
-  if (loading) {
-    return <p className="text-muted text-xs">جارٍ تحميل المقاطع المتاحة…</p>;
-  }
-
-  if (error) {
-    return (
-      <p role="alert" className="text-danger text-xs">
-        {error}
-      </p>
-    );
-  }
-
-  if (!hasTracks) {
-    return (
-      <p className="text-muted text-xs leading-5">
-        لا توجد مقاطع مرفوعة في مكتبتك أو قوائم التشغيل. ارفع مقطعاً من صفحة المكتبة أولاً.
-      </p>
-    );
-  }
+  const hasTracks = tracksById.size > 0;
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={selectId} className="block text-xs font-medium">
-        مقطع الغرفة
+      <label htmlFor={selectId} className="text-muted text-[11px] font-medium">
+        اختر مقطعاً للجلسة
       </label>
+
+      {loadError ? (
+        <p role="alert" className="text-danger text-xs">
+          {loadError}
+        </p>
+      ) : null}
+
       <select
         id={selectId}
-        className="field"
         value={currentTrackId ?? ""}
-        disabled={disabled}
+        disabled={disabled || loading || !hasTracks}
         onChange={(event) => {
           const track = tracksById.get(event.target.value);
-          if (track) onSelect(track);
+
+          if (track) {
+            onSelect(track);
+          }
         }}
+        className="border-border bg-surface-2 text-foreground focus-visible:outline-accent w-full rounded-xl border px-3 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <option value="">اختر مقطعاً…</option>
+        {loading ? (
+          <option value="">جارٍ تحميل المقاطع…</option>
+        ) : hasTracks ? (
+          <>
+            <option value="">اختر مقطعاً…</option>
 
-        {library.length > 0 ? (
-          <optgroup label="من مكتبتك (الكتالوج)">
-            {library.map((track) => (
-              <option key={`library:${track.id}`} value={track.id}>
-                {trackLabel(track)}
-              </option>
-            ))}
-          </optgroup>
-        ) : null}
+            {publishedGroup.length > 0 ? (
+              <optgroup label="منشورة">
+                {publishedGroup.map((track) => (
+                  <option key={`published:${track.id}`} value={track.id}>
+                    {trackLabel(track)}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
 
-        {playlists.map((group) => (
-          <optgroup key={group.playlist.id} label={`قائمة: ${group.playlist.name}`}>
-            {group.tracks.map((track) => (
-              <option key={`${group.playlist.id}:${track.id}`} value={track.id}>
-                {trackLabel(track)}
-              </option>
-            ))}
-          </optgroup>
-        ))}
+            {playlistGroup.length > 0 ? (
+              <optgroup label="من قوائمي">
+                {playlistGroup.map((track) => (
+                  <option key={`playlist:${track.id}`} value={track.id}>
+                    {trackLabel(track)}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null}
+          </>
+        ) : (
+          <option value="">لا توجد مقاطع يمكنك مشاركتها حالياً.</option>
+        )}
       </select>
+
+      {!loading && !hasTracks ? (
+        <p className="text-muted text-[11px] leading-4">
+          شارك مقطعاً من مكتبتك أو قوائمك ليظهر هنا.
+        </p>
+      ) : null}
     </div>
   );
 }
