@@ -10,6 +10,12 @@ import { HomeFriendsColumn } from "@/components/friends/HomeFriendsColumn";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { PlayerEngine } from "@/components/player/PlayerEngine";
 import { ListeningPopup } from "@/components/rooms/ListeningPopup";
+import {
+  DEFAULT_NAV_SIDE,
+  NAV_SIDE_STORAGE_KEY,
+  parseNavSide,
+  type NavSide,
+} from "@/lib/layout/navSide";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/Spinner";
@@ -36,10 +42,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isHome = pathname === "/";
   const [signedIn, setSignedIn] = useState(false);
   const [homeFriendsVisible, setHomeFriendsVisible] = useState(false);
+  const [navSide, setNavSide] = useState<NavSide>(DEFAULT_NAV_SIDE);
   const [allowed, setAllowed] = useState(() => {
     if (!hasSupabaseEnv()) return true;
     return !isAuthRoute && !isProtectedPath(pathname);
   });
+
+  useEffect(() => {
+    setNavSide(parseNavSide(window.localStorage.getItem(NAV_SIDE_STORAGE_KEY)));
+  }, []);
+
+  function toggleNavSide() {
+    setNavSide((current) => {
+      const next = current === "right" ? "left" : "right";
+      window.localStorage.setItem(NAV_SIDE_STORAGE_KEY, next);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!hasSupabaseEnv()) {
@@ -111,7 +130,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <Header />
-      <SideNav />
+      <SideNav side={navSide} onToggle={toggleNavSide} />
       {isHome ? (
         <HomeFriendsColumn enabled={signedIn} onVisibilityChange={setHomeFriendsVisible} />
       ) : null}
