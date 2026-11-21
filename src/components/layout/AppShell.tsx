@@ -42,15 +42,14 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isHome = pathname === "/";
   const [signedIn, setSignedIn] = useState(false);
   const [homeFriendsVisible, setHomeFriendsVisible] = useState(false);
-  const [navSide, setNavSide] = useState<NavSide>(DEFAULT_NAV_SIDE);
+  const [navSide, setNavSide] = useState<NavSide>(() => {
+    if (typeof window === "undefined") return DEFAULT_NAV_SIDE;
+    return parseNavSide(window.localStorage.getItem(NAV_SIDE_STORAGE_KEY));
+  });
   const [allowed, setAllowed] = useState(() => {
     if (!hasSupabaseEnv()) return true;
     return !isAuthRoute && !isProtectedPath(pathname);
   });
-
-  useEffect(() => {
-    setNavSide(parseNavSide(window.localStorage.getItem(NAV_SIDE_STORAGE_KEY)));
-  }, []);
 
   function toggleNavSide() {
     setNavSide((current) => {

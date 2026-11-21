@@ -32,7 +32,6 @@ function canPickTrack(track: Track, currentUserId: string | null): boolean {
  */
 export function RoomTrackPicker({
   currentTrackId,
-  ownerId: _ownerId,
   disabled = false,
   onSelect,
 }: RoomTrackPickerProps) {
